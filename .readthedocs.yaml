@@ -1,8 +1,7 @@
 version: 2
 
-build:
-  tools:
-    python: "3.9"
+tools:
+  python: "3.9"
 
 # Build from the docs/ directory with Sphinx
 sphinx:
