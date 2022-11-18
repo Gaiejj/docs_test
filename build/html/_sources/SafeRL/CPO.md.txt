@@ -1,0 +1,364 @@
+# [Constrained Policy Optimization](https://arxiv.org/abs/1705.10528)
+
+## Introduction of algorithm
+
+### Background
+
+**Constrained Policy Optimization**(**CPO**) is the first general-purpose policy search algorithm for constrained reinforcement learning with guarantees for near-constraint satisfaction at each iteration. CPO allows us to train neural network policies for high-dimensional control while making guarantees about policy behavior all throughout training. In other word, CPO provide a general method to make sure RL trained in a safe direction.
+CPO aims to provide an approach for policy search in continuous CMDPs. It use the result from TRPO and NPG to derive a policy improvement step that guarantees both an increase in reward and satisfaction ofconstraints on other costs.
+
+### Target
+In the previous chapters, you learned that TRPO solves the following optimization problems:
+$$\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{1}$$
+$$s.t.\quad D(\pi,\pi_k)\le\delta$$
+where $\prod_{\theta}\subseteq\prod$ denotes the set of parametrized policies with parameters $\theta$, and $D$ is some distance measure.  In local policy search for CMDPs, we additionally require policy iterates to be feasible for the CMDP, so instead of optimizing over $\prod_{\theta}$, CPO optimize over $\prod_{\theta}\cap\prod_{C}$:
+$$\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{2}$$
+$$s.t. \quad\eta_{C_i}(\pi)\le d_i\quad i=1,...m \\ D(\pi,\pi_k)\le\delta$$
+This update is difficult to implement in practice because it requires evaluation of the constraint functions to determine whether a proposed point $\pi$ is feasible.
+CPO  develop a principled approximation to $(2)$ with a particular choice of $D$, where the objective and constraints are replaced with surrogate functions. CPO propose that with those surrogates, the update's worst case performance and worst-case constraint violation can be bounded with values that depend on a hyperparameter of the algorithm.
+
+### Key Equations
+Here we will show you the main contents of CPO theory, please refer to the appendix for a detailed proof of these theories.This section is divided by three parts as below:
+
+* Policy Performance Bounds
+* Trust Region Methods
+* Worst Performance Of CPO Update
+
+Before we get into the first part, we'll give some of the meaning of the basic symbols in reinforcement learning so that you can better understand the formulas presented below
+
+|Symbol|Description|
+|------|-----------|
+|$s$|state|
+|$a$|action|
+|$R(s,a,s^{'})$|reward function|
+|$\gamma$|discount factor|
+|$A^{\pi}(s,a)$|advantage functions|
+|$A_{C_i}^{\pi}(s,a)$|advantage functions for costs|
+|$\pi(a\vert s)$|the probability of selecting action a in state s|
+|$\theta$|the parameters for policy $\pi$|
+
+#### Policy Performance Bounds
+CPO present the theoretical foundation for its approach, a new bound on the difference in returns between two arbitrary policies. The following theorem connects the difference in returns (or constraint returns) between two arbitrary policies to an average divergence between them.
+
+**Theorem 1**
+For any function $f:S\rightarrow R$ and any policys $\pi$ and $\pi^{'}$, define $d_f(s,a,s^{'})=R(s,a,s^{'})+\gamma f(s^{'})-f(s)$
+$$\epsilon_f^{\pi^{'}}=max_s{|E_{a\sim\pi\\\,s^{'}\sim P }}[d_f(s,a,s)]|$$
+$$J_{\pi,f}(\pi^{'})={E_{\tau\sim\pi}}[(\frac{\pi^{'}(a|s)}{\pi(a|s)}-1)(d_f(s,a,s^{'}))]$$
+$$D^{\pm}_{\pi ,f}(\pi^{'})=\frac{J_{\pi,f}(\pi^{'})}{1-\gamma}\pm\frac{2\gamma\epsilon_f^{\pi^{'}}}{(1-\gamma)^2}E_{s\sim d^{\pi}}[D_{TV}(\pi^{'}||\pi)[s]]$$
+where $D_{TV}(\pi^{'}||\pi)[s]=\frac12\sum_a|\pi^{'}(a|s)-\pi(a|s)|$ is the total variational divergence between action distributions at s.
+The final conclusion is as follows:
+$$D^+_{\pi,f}(\pi^{'})\ge \eta(\pi^{'})-\eta(\pi)\ge D^-_{\pi,f}(\pi^{'})\tag{3}$$
+Furthermore, the bounds are tight (when $\pi=\pi^{'}$, all three expressions are identically zero)
+The proof of the theorem above can be seen in appendix. Trying to understand the proof process of the theorem will give you a deeper understanding of it, but if you think it's too difficult, it doesn't matter, just accept it and it won't affect your understanding of what comes next.
+Note that the function $f$ can be arbitrarily chosen, so picking $f=V^{\pi}$, we obtain a corollary below:
+
+**Corollary 1**
+For any policies $\pi^{'}$ and $\pi$, with $\epsilon^{\pi^{'}}=max_s|E_{a\sim\pi^{'}}[A^{\pi}(s,a)]|$, the following bound holds:
+$$\eta(\pi^{'})-\eta(\pi)\ge\frac1{1-\gamma}E_{s\sim d^{\pi}\,a\sim\pi^{'}}[A^{\pi}(s,a)-\frac{2\gamma\epsilon_f^{\pi^{'}}}{(1-\gamma)^2}D_{TV}(\pi^{'}||\pi)[s]]\tag{4}$$
+
+Then we generalize the conclusion to cost's evaluation function:
+
+**Corollary 2**
+For any policies $\pi^{'}$ and $\pi$, with $\epsilon_{C_i}^{\pi^{'}}=max_s|E_{a\sim\pi^{'}}[A_{C_i}^{\pi}(s,a)]|$, the following bound holds:
+$$\eta_{C_i}(\pi^{'})-\eta_{C_i}(\pi)\le\frac1{1-\gamma}E_{s\sim d^{\pi}\,a\sim\pi^{'}}[A_{C_i}^{\pi}(s,a)+\frac{2\gamma\epsilon_{C_i}^{\pi^{'}}}{(1-\gamma)^2}D_{TV}(\pi^{'}||\pi)[s]]\tag{5}$$
+
+trust region methods prefer constrain the KL-divergence between policies, so CPO use Pinsker’s inequality to connect the $D_{TV}$ with $D_{KL}$:
+$$D_{TV}(p||q)\le\sqrt{D_{KL}(p||q)/2}$$
+Combining this with Jensen’s inequality, we obtain our final corollary:
+
+**Corollary 3**
+In bound $(3),(4),(5)$, make the substitution:
+$$E_{s\sim d^{\pi}}[D_{TV}(\pi||\pi^{'})[s]]\rightarrow\sqrt{\frac12E_{s\sim d^{\pi}}[D_{KL}(\pi^{'}||\pi)[s]]}\tag{6}$$
+
+In this section we introduce the core theory of CPO and its three important corollaries, and then we will discuss how CPO uses these theories to get its trust region methods
+
+#### Trust Region Methods
+Trust region algorithms for reinforcement learning have policy updates of the form:
+$$\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}E_{s\sim d^{\pi_k}\,a\sim\pi}[A^{\pi_k}(s,a)]\tag{7}$$
+$$s.t.\quad \hat D_{KL}(\pi||\pi_k)\le\delta$$
+where $\hat D_{KL}(\pi||\pi_k)=E_{s\sim\pi_k}[D_{KL}(\pi||\pi_k)[s]]$, and $\delta\gt0$ is the step size, The set $\{\pi_{\theta}\in\prod_{\theta}:\hat D_{KL}(\pi||\pi^{'})\le\delta\}$ is called trust region.
+The primary motivation for this update is that it is an approximation to optimizing the lower bound on policy performance given in $(4)$, which would guarantee monotonic performance improvements.
+Inspired by trust region methods, CPO propose the final optimization problem, which uses a trust region instead of penalties on policy divergence to enable larger step sizes:
+$$\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,E_{s\sim d^{\pi_k}\,a\sim\pi}[A^{\pi_k}(s,a)]\tag{8}$$
+$$s.t. \quad\eta_{C_i}(\pi_k)+\frac1{1-\gamma}E_{s\sim d^{\pi_k}\,a\sim\pi}[A_{C_i}^{\pi_k}(s,a)]\le \delta_i \quad\forall i$$
+$$\hat D_{KL}(\pi||\pi_k)\le\delta$$
+
+#### Worst Performance Of CPO Update
+Here We will introduce the two proposition proposed by the CPO, one describes the worst case performance degradation guarantee that depends on $\delta$ and the other discuss the worst case constraint violation in CPO update.
+
+**Proposition 1**(Trust Region Update Performance)
+
+Suppose $\pi_k,\pi_{k+1}$ are related by(7). and that $\pi_k\in\prod_{\theta}$, A lower bound on the policy performance difference between $\pi_k$ and $\pi_{k+1}$ is:
+$$\eta(\pi^{'})-\eta(\pi)\ge\frac{-\sqrt{2\delta}\gamma\epsilon^{\pi_{k+1}}}{(1-\gamma)^2}\tag{9}$$
+where $\epsilon^{\pi_{k+1}}=max_s|E_{a\sim\pi_{k+1}}[A_{\pi_k}(s,a)]|$.
+
+**Proposition 2**(CPO Update Worst-Case Constraint Violation)
+
+Suppose $\pi_k,\pi_{k+1}$ are related by(8). and that $\pi_k\in\prod_{\theta}$, An upper bound on the $C_i$-return of $\pi_{k+1}$ is:
+$$\eta_{C_i}(\pi_{k+1})\le\delta_i+\frac{\sqrt{2\delta}\gamma\epsilon^{\pi_{k+1}}_{C_i}}{(1-\gamma)^2}\tag{10}$$
+where $\epsilon^{\pi_{k+_1}}_{C_i}=max_s|E_{a\sim\pi_{k+1}}[A_{C_i}^{\pi_k}(s,a)]|$
+
+#### Summary
+In this section we introduce the most important inequalities in CPO. Based on those inequalities, CPO presents optimization problems that ultimately need to be solved, and propose two proposition about the worst case in CPO update. Next section we wil go on with the question that how to practically solve this problem.
+It is normal that you may be confused when you first read these theoretical derivation processes, and we have given a detailed proof of the above formulas in the appendix, which we believe you can understand by reading them a few times.
+
+## Practical Implementation
+In this section, we show how CPO implement an approximation to the update $(8)$ that can be efficiently computed,even when optimizing policies with thousands of parameters. To address the issue of approximation and samplingerrors that arise in practice, as well as the potential violations described by Proposition 2, CPO propose to tightenthe constraints by constraining upper bounds of the auxilliary costs, instead of the auxilliary costs themselves
+This section is also divided by thre parts:
+* Approximately Solving the CPO Update
+* Feasibility
+* Tightening Constraints via Cost Shaping
+
+### Approximately Solving the CPO Update
+For policies with high-dimensional parameter spaces like neural networks, $(8)$ can be impractical to solve directly because of the computational cost. However, for small step sizes $\delta$, the objective and cost constraints are well-approximated by linearizing around $\pi_k$, and the KL-Divergence constraint is well-approximated by second order expansion . Denoting the gradient of the objective as $g$, the gradient of constraint $i$ as $b_i$, the Hessian of the KL-divergence as $H$, and defining $c_i=J_{C_i}(\pi_k)-d_i$, the approximation to $(8)$ is:
+$$\theta_{k+1}=arg\,\underset{\theta}{max}\,g^T(\theta-\theta_k)\tag{11}$$
+$$s.t.\quad c_i+b_i^T(\theta-\theta_k)\le0\, i=1,...m$$
+$$\frac12(\theta-\theta_k)^TH(\theta-\theta_k)\le\delta$$
+With $B=[b_1,...,b_m]$ and $c=[c_1,...,c_m]^T$, a dual to $(11)$ can be express as:
+$$\underset{\lambda\ge0\,\upsilon\ge0}{max}\frac{-1}{2\lambda}(g^TH^{-1}g-2r^T\upsilon+\upsilon^TS\upsilon)+\upsilon^Tc-\frac{\lambda\delta}2\tag{12}$$
+where $r=g^TH^{-1}B$,$S=B^TH^{-1}B$. If $\lambda ^*, \upsilon^*$ are a solution to the dual, the solution to the primal is 
+$$\theta^*=\theta_k+\frac1{\lambda^*}H^{-1}(g-B\upsilon^*)\tag{13}$$
+In a word, CPO  solves the dual for $λ∗$, $ν∗$ and uses it to propose the policy update $(13)$, thus solve $(8)$ in a partical way.
+In experiment CPO also use two tricks to promise the performance for update
+* Because of approximation error, the proposed update may not satisfy the constraints in $(8)$; a **backtracking line search** is used to ensure surrogate constraint satisfaction.
+* For high-dimensional policies, it is impractically expensive to invert the FIM. This poses a challenge for computing $H^{-1}g$ and $H^{-1}b$, which appear in the dual. Like TRPO, CPO approximately compute them using the **conjugate gradient** method.
+
+### Feasibility
+Due to approximation errors, CPO may take a bad step and produce an infeasible iterate $\pi_k$. CPO recover the update from infeasible case by proposing an update to purely decrease the constraint value:
+$$\theta^*=\theta_k-\sqrt{\frac{2\delta}{b^TH^{-1}b}}H^{-1}b\tag{14}$$
+As before, this is followed by a line search. This approach is principled in that it uses the limiting search direction as the intersection of the trust region and the constraint region shrinks to zero.
+
+### Tightening Constraints via Cost Shaping
+To build a factor of safety into the algorithm to minimize the chance of constraint violations, CPO choose to constrain upper bounds on the original constraints, $C^+_i$, instead of the origianl constrains themselves. CPO do this by cost shaping:
+$$C^+_i(s,a,s^{'})=C_{i}(s,a,s^{'})+\triangle_i(s,a,s^{'})\tag{15}$$
+where $\delta_i:S\times A\times S\rightarrow R_+$ correlates in some useful way with C_i.
+Because CPO has only one constraint, it partition states into **safe states** and **unsafe states**, and the agent suffers a safety cost of 1 for being in an unsafe state. CPO choose $\triangle$ to be the probability of entering an unsafe state within a fixed time horizon, according to a learned model that is updated at each iteration. This choice confers the additional benefit of smoothing out sparse constraints.
+
+## Code with OmniSafe
+### Quick start
+We use `train.py` as the entrance file. You can train the agent with CPO simply using `train.py`, with arguments about CPO and enviroments does the training. For example, to run CPO in Safexp-PointGoal1-v0, with 4 cpu cores and seed 0, you can use the following command:
+`python train.py --env-id Safexp-PointGoal1-v0 --algo cpo --cores 4 --seed 0`
+Here are the documentation of CPO in PyTorch version.
+
+### Architecture of functions
+* `train()`
+   * `runner().compile()`
+   * `runner().train()`
+      * `cpo.learn()`
+        * `cpo.roll_out()`
+        * `cpo.update()`
+          * `cpo.buf.get()`
+          * `cpo.update_policy_net()`
+            * `Fvp()`
+            * `conjugate_gradients()`
+            * `search_step_size()`
+          * `cpo.update_cost_net()`
+          * `cpo.update_value_net()`
+        * `cpo.log()`
+   * `runner().eval()`
+
+### Documentation of functions 
+
+#### Newly added function
+|Function|Description|
+|--------|-----------|
+|`compute_loss_cost_performance()`|Get the policy cost performance gradient|
+
+
+#### Basic functions
+
+A **bold font** indicates a functional change to the function
+
+|Function|Description|
+|--------|-----------|
+|`train()`|The entrance to train the trpo model|
+|`runner().compile()`|Compile the model, use mpi for parallel computation or run N individual processes.|
+|`runner().train()`|Train the model for a given number of epochs.|
+|`cpo.learn()`|Main function for algorithm update, divided into `roll_out()`, `update()` and `log()`|
+|`cpo.roll_out()`|Collect data and store to experience buffer.|
+|`cpo.update()`|Update actor, critic, running statistics|
+|`cpo.buf.get()`|Call this at the end of an epoch to get all of the data from the buffer|
+|`cpo.update_policy_net()`|Add `Fvp()`, `conjugate_gradients()` and `search_step_size()`, **and it divides optimization into 5 kinds to compute**|
+|`Fvp()`|Build the Hessian-vector product based on an approximation of the KL-Divergence.|
+|`conjugate_gradients()`|Use conjugate gradient algorithm to make a fast calculating|
+|`search_step_size()`|CPO performs line-search to **ensure constraint satisfaction for rewards and costs.**|
+|`cpo.update_cost_net()`|Update cost network using GAE cost|
+|`cpo.update_value_net()`|Update value network using GAE reward|
+|`cpo.log()`|Get the trainning log|
+|`runner().eval()`|Eval the model|
+
+
+### Parameters ###
+#### Specific Parameters
+* **cost_limit(float)**: Upper bound of max-cost, set as restriction
+* **use_cost_value_function(bool)**: Whether to use two critics value and cost net and update them
+* **loss_pi_cost_before(float)**: $\pi$ and cost loss last iter
+
+#### Basic parameters
+* **actor (string)**: The type of network in actor, discrete of continuous.
+* **ac_kwargs (dictionary)**: Information about actor and critic's net work configuration,it originates from `algo.yaml` file to describe `hidden layers` and `activation function`.
+   * parameters for actor network
+     * hidden_sizes:
+       * 64
+       * 64
+     * activations: tanh
+   * parameters for critic network
+     * hidden_sizes:
+       * 64
+       * 64
+     * activations: tanh
+* **env_id (string)**: The name of environment we want to roll out.
+* **epochs (int)**: The number of epochs we want to roll out.
+* **logger_kwargs (dictionary)**: The information about logger configuration which originates from `runner module`.
+* **adv_estimation_method (string)**: The type of advantage estimation method.
+* **algo (string)**: The name of algorithm corresponding to current class, it does not actually affect any things which happen in the following.
+* **check_freq (int)**: The frequency for we to check if all models own the same parameter values.(for mpi multi-process purpose).
+* **entropy_coef (float)**: The discount coefficient for entropy penalty, if parameters`use_entropy=True`.
+* **gamma (float)**: The gamma for GAE.
+* **max_ep_len (int)**: The maximum timesteps of an episode.
+* **max_grad_norm (float)**: If parameters`use_max_grad_norm=True`, use this parameter to normalize gradient.
+* **num_mini_batches (int)**: The number of mini batches we want to update actor and critic after one epoch.
+* **optimizer (string)**: The type of optimizer.
+* **pi_lr (float)**: The learning rate of actor network.
+* **vf_lr (float)**: The learning rate of critic network.
+* **steps_per_epoch (int)**:The number of time steps per epoch.
+* **target_kl (float)**:Roughly what KL divergence we think is appropriate between new and old policies after an update. This will get used for early stopping. (Usually small, 0.01 or 0.05.)
+* **train_pi_iterations (int)**: The number of iteration when we update actor network per mini batch.
+* **train_v_iterations (int)**: The number of iteration when we update critic network per mini batch.
+* **use_entropy (bool)**: Use entropy penalty or not.
+* **use_kl_early_stopping (bool)**: Use KL early stopping or not.
+* **use_reward_scaling (bool)**: Use reward scaling or not.
+* **use_reward_penalty (bool)**: Use cost to penalize reward or not.
+* **use_shared_weights (bool)**: Use shared weights between actor and critic network or not.
+* **use_standardized_advantages (bool)**: Use standardized advantages or not.
+* **use_standardized_obs (bool)**: Use standarized observation or not.
+* **weight_initialization (string)**: The type of weight initialization method.
+* **save_freq (int)**: How often (in terms of gap between epochs) to save the current policy and value function.
+* **seed (int)**: The random seed of this run.
+
+## Reference
+
+* [Constrained Policy Optimization](https://arxiv.org/abs/1705.10528)
+* [A Natural Policy Gradient](https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf)
+* [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
+* [Constrained Markov Decision Processes](https://www.semanticscholar.org/paper/Constrained-Markov-Decision-Processes-Altman/3cc2608fd77b9b65f5bd378e8797b2ab1b8acde7)
+
+## Appendix
+
+### CMDPs
+
+A **constrained Markov decision process(CMDP)** is an MDP augmented with constraints that restrict the set of allowable policies for that MDP. Specifically, we agument the MDP with a set $C$ of auxiliary cost functions, $C_1,...,C_m$(with each one a function $C_i:S\times A\times S\rightarrow R$ maping transition tuples to costs, like the usual reward),  and limits $\delta_1,...,\delta_m$. Let $\eta_{C_i}(\pi)$ denote expected discounted return of policy $\pi$ with respect to cost function $C_i:\eta_{C_i}(\pi)=E_{\tau\sim\pi}[\sum_{t=0}^{\infty}\gamma^tC_i(s_t,a_t,s_{t+1})]$. The set of feasible stationary policies for a CMDP is then
+$$\prod_C=\{\pi\in\prod :\forall i,\eta_{C_i}(\pi)\le\delta_i\}$$
+and the reinforcement learning problem in a CMDP is
+$$\pi^*=arg\,max_{\pi\in\prod_C}\eta(\pi)$$
+The choice of optimizing only over stationary policies is justified: it has been shown that the set of all optimal policies for a CMDP includes stationary policies, under mild technical conditions. For a thorough review of CMDPs and CMDP theory, we refer the reader to the [original paper of CMDPs](https://www.semanticscholar.org/paper/Constrained-Markov-Decision-Processes-Altman/3cc2608fd77b9b65f5bd378e8797b2ab1b8acde7)
+
+### Proof of Policy Performance Bound
+
+Here we will provide a provement for policy performance bound we mentioned before. This part would be divided by a preparatory knowledge part, three lemma part and finally the conclusion part.  As long as you understand the prerequisites, you can understand the content that follows.
+
+#### Preparatory knowledge
+
+Our analysis will begin with the discounted future future state distribution, $\rho_{\pi}$, which is defined as:
+$$\rho_{\pi}(s)=(1-\gamma)\sum_{t=0}^{\infty}\gamma^tP(s_t=s|\pi)\tag{1} $$
+Let $p_{\pi}^t\in R^{|S|}$ denote the vector with components $p_{\pi}^{t}(s)=P(s_t=s|\pi)$, and let $P_{\pi}\in R^{|S|\times|S|}$ denote the transition matrix with components $P_{\pi}(s^{'}|s)=\int daP(s^{'}|s,a)\pi(a|s)$, which shown as below:
+$$
+\left[
+\begin{matrix}
+ p_{\pi}^t(s_1)\\     
+ p_{\pi}^t(s_2)\\
+ \vdots \\
+ p_{\pi}^t(s_n)       
+\end{matrix}
+\right]=
+\left[
+\begin{matrix}
+ P_{\pi}(s_1|s_1)      & P_{\pi}(s_1|s_2)      & \cdots & P_{\pi}(s_1|s_n)     \\
+ P_{\pi}(s_2|s_1)      & P_{\pi}(s_2|s_2)    & \cdots & P_{\pi}(s_2|s_n)     \\
+ \vdots & \vdots & \ddots & \vdots \\
+ P_{\pi}(s_n|s_1)      & P_{\pi}(s_n|s_2)     & \cdots & P_{\pi}(s_n|s_n)     \\
+\end{matrix}
+\right]
+\left[
+\begin{matrix}
+ p_{\pi}^{t-1}(s_1)\\     
+ p_{\pi}^{t-1}(s_2)\\
+ \vdots \\
+ p_{\pi}^{t-1}(s_n)       
+\end{matrix}
+\right]
+$$
+then $p_{\pi}^t=P_{\pi}p_{\pi}^{t-1}=P_{\pi}^2p_{\pi}^{t-2}=...=P_{\pi}^t\mu$, where $\mu$ represents the state distribution of the system at the moment, that is, the initial state distribution, then $\rho_{\pi}$ can then be rewritten as :
+$$\rho_{\pi}=\left[\begin{matrix}\rho_{\pi}(s_1)\\\rho_{\pi}(s_2)\\\vdots\\\rho_{\pi}(s_n)\end{matrix}\right]=(1-\gamma)\left[\begin{matrix}\gamma^0p^0_{\pi}(s_1)+\gamma^1p^1_{\pi}(s_1)+\gamma^2p^2_{\pi}(s_1)+...\\\gamma^0p^0_{\pi}(s_2)+\gamma^1p^1_{\pi}(s_2)+\gamma^2p^2_{\pi}(s_2)+...\\\vdots \\\gamma^0p^0_{\pi}(s_3)+\gamma^1p^1_{\pi}(s_3)+\gamma^2p^2_{\pi}(s_3)+...\end{matrix}\right]$$
+$$\rho_{\pi}=(1-\gamma)\sum_{t=0}^{\infty}\gamma^tp^t_{\pi}=(1-\gamma)(1-\gamma P_{\pi})^{-1}\mu\tag{2}$$
+The above proof may be somewhat complicated, but as long as you understand them, the rest of the content will be easier to catch up with.
+
+#### Lemma 1
+
+For any function $f:S\rightarrow R$ and any policy $\pi$:
+ $$(1-\gamma){E}_{{s\sim\mu}}[f(s)]+{E}_{\tau\sim\pi}[\gamma f(s^{'})]-{E}_{s\sim\rho_{\pi}}[f(s)]=0\tag{3}$$ where $\tau\sim\pi$ denotes $s\sim\rho_{\pi}$, $a\sim\pi$ and $s^{'}\sim P$.
+***Proof.***
+Multiply both sides of $(2)$ by $(I-\gamma P_{\pi})$, we get :
+$$ (I-\gamma P_{\pi})\rho_{\pi}=(1-\gamma)\mu\tag{4} $$
+Then take the inner product with the vector $f \in R^{|S|}$ and notice that the vector $f$ can be arbitrarily picked.
+$$<f,(I-\gamma P_{\pi})\rho_{\pi}>=<f,(1-\gamma)\mu>\tag{5}$$
+Both sides of the above equation can be rewritten separately by:
+$$<f,(I-\gamma P_{\pi})\rho_{\pi}>=[\sum_sf(s)\rho_{\pi}(s)]-[\sum_{s^{'}}f(s^{'})\gamma\sum_s\sum_a\pi(a|s)P(s^{'}|s,a)\rho_{\pi}(s)]$$
+$$={E}_{s\sim\rho_{\pi}}[f(s)]-{E}_{\tau\sim\pi}[\gamma f(s^{'})]\tag{6}$$
+$$<f,(1-\gamma)\mu>=\sum_sf(s)(1-\gamma)\mu(s)=(1-\gamma){E}_{s\sim\mu}[f(s)] \tag{7}$$
+Combining $(5),(6),(7)$, we obtain:
+$$(1-\gamma){E}_{{s\sim\mu}}[f(s)]+{E}_{\tau\sim\pi}[\gamma f(s^{'})]- {E}_{s\sim\rho_{\pi}}[f(s)]\tag{8}$$
+Note that the objective function can be represented as:
+$$\eta(\pi)=\frac{1}{1-\gamma}{E_{\tau\sim\pi}}[R(s,a,s^{'})]\tag{9}$$
+Combining this with $(8)$ then we obtain:
+$$\eta(\pi)={E_{s\sim\mu}[f(s)]}+\frac{1}{1-\gamma}{E_{\tau\sim\pi}}[R(s,a,s^{'})+\gamma f(s^{'})-f(s)]\tag{10}$$
+
+####  Lemma2
+
+For any function $f:S\rightarrow R$ and any policies $\pi$ and $\pi^{'}$,define:
+$$J_{\pi,f}(\pi^{'})={E_{\tau\sim\pi}}[(\frac{\pi^{'}(a|s)}{\pi(a|s)}-1)(R(s,a,s^{'})+\gamma f(s^{'})-f(s))]\tag{11}$$and $\epsilon_f^{\pi^{'}}=max_s{E_{a\sim\pi\\\,s^{'}\sim P }}|[R(s,a,s^{'})+\gamma f(s^{'})-f(s)]|$, Then the following bounds hold:
+$$\eta(\pi^{'})-\eta(\pi)\ge\frac{1}{1-\gamma}(J_{\pi,f}(\pi^{'})-2\epsilon_f^{\pi^{'}}D_{TV}(\rho_{\pi}||\rho_{\pi^{'}}))\tag{12}$$
+$$\eta(\pi^{'})-\eta(\pi)\le\frac{1}{1-\gamma}(J_{\pi,f}(\pi^{'})+2\epsilon_f^{\pi^{'}}D_{TV}(\rho_{\pi}||\rho_{\pi^{'}}))\tag{13}$$ where $D_{TV}$ is the total variational divergence. Furthermore, the bounds are tight, when $\pi^{'}=\pi,$ the LHS and RHS are identically zero.
+
+**Proof.**
+
+Let $d_f(s,a,s^{'})=R(s,a,s^{'})+\gamma f(s^{'})-f(s)$, then by(12), we easily obtain that:
+$$\eta(\pi^{'})-\eta(\pi)=\frac{1}{1-\gamma}\{{E_{\tau\sim\pi^{'}}}[d_f(s,a,s^{'})]-{E_{\tau\sim\pi}}[d_f(s,a,s^{'}]\}\tag{14}$$
+For the first term of the equation, let $\hat d^{\pi^{'}}_f\in R^{|S|}$ denote the vector of components $\hat d^{\pi^{'}}_f(s)={E_{a\sim\pi^{'}\\s^{'}\sim P }}[d_f(s,a,s^{'}|s)]$, then 
+$${E_{\tau\sim\pi^{'}}}[d_f(s,a,s^{'})]=<\hat d^{\pi^{'}}_f,\rho_{\pi^{'}}>=<\hat d^{\pi^{'}}_f,\rho_{\pi}>+<\hat d^{\pi^{'}}_f,\rho_{\pi^{'}}-\rho_{\pi}>\tag{15}$$
+By using Holder’s inequality; for any $p,q \in [1,\infty]$, such that $\frac{1}{p}+\frac{1}{q}=1$. we have
+$$<\hat d^{\pi^{'}}_f,\rho_{\pi}>+||\rho_{\pi^{'}}-\rho_{\pi}||_p||\hat d^{\pi^{'}}_f||_q\ge\,{E_{\tau\sim\pi^{'} }}[d_f(s,a,s^{'})]\tag{16}$$
+$$<\hat d^{\pi^{'}}_f,\rho_{\pi}>-||\rho_{\pi^{'}}-\rho_{\pi}||_p||\hat d^{\pi^{'}}_f||_q\le\,{E_{\tau\sim\pi^{'} }}[d_f(s,a,s^{'})]\tag{17}$$
+Please note that $||\rho_{\pi^{'}}-\rho_{\pi}||_1=2D_{TV}(\rho_{\pi^{'}}|\rho_{\pi})$ and $||d_f(s,a,s^{'})||_{\infty}=\epsilon_f^{\pi^{'}}$ ,then $(16)$ leads to $(13)$, and the $(17)$ leads to $(12)$.
+
+#### Lemma3
+
+The divergence between discounted future state visitation distributions, $||\rho_{\pi^{'}}-\rho_{\pi}||$, is bounded by an average divergence of the policies $\pi$ and $\pi^{'}$:
+$$||\rho_{\pi^{'}}-\rho_{\pi}||_1\le\frac{2\gamma}{1-\gamma}E_{s\sim\rho_{\pi}}[D_{TV}(\pi^{'}||\pi)[s]]\tag{18}$$
+
+**Proof.**
+First, We introduce an identity for the vector difference of the discounted future state visitation distributions on two different policies, $\pi$ and $\pi^{'}. $According to $(4)$, define the matrices $G=(I-\gamma P_{\pi})^{-1}$, $\hat G=(I-\gamma P_{\pi^{'}})^{-1}$, and $\triangle=P_{\pi^{'}}-P_{\pi}$, Then:
+$$G^{-1}-\hat G^{-1}=(I-\gamma P_{\pi})-(I-\gamma P_{\pi^{'}})=\gamma \triangle$$
+left-multiplying by $G$ and right-multiplying by $\hat G$, we obtain:
+$$\hat G-G=\gamma \hat G\triangle G$$
+Thus we obtain:
+$$\rho_{\pi^{'}}-\rho_{\pi}=(1-\gamma)(\hat G-G)\mu=\gamma\hat G\triangle\rho_{\pi}\tag{19}$$
+Then using $(19)$, we obtain:
+$$||\rho_{\pi^{'}}-\rho_{\pi}||_1=\gamma||\hat G\triangle\rho_{\pi}||_1\le\gamma||\hat G||_1||\triangle\rho_{\pi}||_1$$
+$||\hat G||_1$ is bounded by:
+$$||\hat G||_1=||(I-\gamma P_{\pi^{'}})^{-1}||_1\le\sum_{t=0}^{\infty}\gamma ^t||P_{\pi^{'}}||_1^t=(1-\gamma)^{-1}$$
+Then we can conclude the lemma with the bounded $||\triangle \rho_{\pi}||_1$:
+$$||\triangle \rho_{\pi}||_1=\sum_{s^{'}}|\sum _s\triangle(s^{'}|s)\rho_{\pi}(s)|\le\sum_{s,s^{'}}|\triangle (s^{'}|s)|\rho_{\pi}(s)$$
+$$=\sum_{s,s^{'}}|\sum_aP(s^{'}|s,a)(\pi^{'}(a|s)-\pi(a|s))|\rho_{\pi}(s)\le\sum_{s,a,s^{'}}P(s^{'}|s,a)|\pi^{'}(a|s)-\pi(a|s)|\rho_{\pi}(s)$$
+$$=\sum_{s,a}|\pi^{'}(a|s)-\pi(a|s)|\rho_{\pi}(s)=2E_{s\sim\rho_{pi}}[D_{TV}(\pi^{'}||\pi)[s]]$$
+
+#### Conclusion
+Based on above three lemma, we can finally prove our policy performance bound theroem:
+For any function $f:S\rightarrow R$ and any policys $\pi$ and $\pi^{'}$, define $d_f(s,a,s^{'})=R(s,a,s^{'})+\gamma f(s^{'})-f(s)$
+$$\epsilon_f^{\pi^{'}}=max_s{|E_{a\sim\pi\\\,s^{'}\sim P }}[d_f(s,a,s)]|$$
+$$J_{\pi,f}(\pi^{'})={E_{\tau\sim\pi}}[(\frac{\pi^{'}(a|s)}{\pi(a|s)}-1)(d_f(s,a,s^{'}))]$$
+$$D^{\pm}_{\pi ,f}(\pi^{'})=\frac{J_{\pi,f}(\pi^{'})}{1-\gamma}\pm\frac{2\gamma\epsilon_f^{\pi^{'}}}{(1-\gamma)^2}E_{s\sim d^{\pi}}[D_{TV}(\pi^{'}||\pi)[s]]$$
+where $D_{TV}(\pi^{'}||\pi)[s]=\frac12\sum_a|\pi^{'}(a|s)-\pi(a|s)|$ is the total variational divergence between action distributions at s.
+The final conclusion is as follows:
+$$D^+_{\pi,f}(\pi^{'})\ge J(\pi^{'})-J(\pi)\ge D^-_{\pi,f}(\pi^{'})$$
+Furthermore, the bounds are tight (when $\pi=\pi^{'}$, all three expressions are identically zero)

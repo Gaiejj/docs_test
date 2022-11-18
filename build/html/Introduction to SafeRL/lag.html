@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html  lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+      <title>TRPO-Lagrangian and PPO-Lagrangian</title>
+    
+          <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/theme.css " type="text/css" />
+          <link rel="stylesheet" href="../_static/css/tooltipster.custom.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/css/tooltipster.bundle.min.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/css/tooltipster-sideTip-shadow.min.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/css/tooltipster-sideTip-punk.min.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/css/tooltipster-sideTip-noir.min.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/css/tooltipster-sideTip-light.min.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/css/tooltipster-sideTip-borderless.min.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/css/micromodal.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" type="text/css" />
+      
+      <!-- sphinx script_files -->
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/js/hoverxref.js"></script>
+        <script src="../_static/js/tooltipster.bundle.min.js"></script>
+        <script src="../_static/js/micromodal.min.js"></script>
+        <script src="../_static/design-tabs.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+      
+      <!-- bundled in js (rollup iife) -->
+      <!-- <script src="../_static/theme-vendors.js"></script> -->
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+
+  <body>
+    <div id="app">
+    <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">OmniSafe</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Documentation
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Base_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Safe_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         OmniSafe
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         MISC
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Documentation
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Base_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Safe_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         OmniSafe
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         MISC
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">Documentation</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../Documentation/Introduction.html" class="reference internal ">Introudction</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../Documentation/Installation.html" class="reference internal ">Installation</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">Base_RL</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/mdp_docs.html" class="reference internal ">Markov Decision Process</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/pg_docs.html" class="reference internal ">Policy Gradient</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/npg_docs.html" class="reference internal ">Natural Policy Gradient</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/trpo_docs.html" class="reference internal ">Trust Region Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/ppo_docs.html" class="reference internal ">Proximal Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">Safe_RL</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../SafeRL/cpo_docs.html" class="reference internal ">Constrained Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../SafeRL/pcpo_docs.html" class="reference internal ">Projection-Based Constrained Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../SafeRL/rcpo_docs.html" class="reference internal ">Reward Constrained Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../SafeRL/focops_docs.html" class="reference internal ">First Order Constrained Optimization in Policy Space</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">OmniSafe</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/logger.html" class="reference internal ">OmniSafe Logger</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/multi_process.html" class="reference internal ">OmniSafe Mult-Processing</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/run_utils.html" class="reference internal ">OmniSafe Utils</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/visualization.html" class="reference internal ">OmniSafe Visualization</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">MISC</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../MISC/Changelog.html" class="reference internal ">Changelog</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+    <li>TRPO-Lagrangian and PPO-Lagrangian</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main" v-pre>
+            
+  <section id="trpo-lagrangian-and-ppo-lagrangian">
+<h1><a class="reference external" href="https://cdn.openai.com/safexp-short.pdf">TRPO-Lagrangian and PPO-Lagrangian</a><a class="headerlink" href="#trpo-lagrangian-and-ppo-lagrangian" title="Permalink to this heading"></a></h1>
+<section id="introduction-of-algorithm">
+<h2>Introduction of algorithm<a class="headerlink" href="#introduction-of-algorithm" title="Permalink to this heading"></a></h2>
+<section id="background">
+<h3>Background<a class="headerlink" href="#background" title="Permalink to this heading"></a></h3>
+<p>In the previous introduction of the algorithm, we know that SafeRL
+mainly solves the constraint optimization problem of CMDP. However,
+constrained optimization problems tend to be more difficult to solve
+than unconstrained optimization problems. Therefore, a natural idea is
+to convert a constrained optimization problem into an unconstrained
+optimization problem and then solve it using classical optimization
+algorithms such as stochastic gradient descent. <strong>Lagrangian methods</strong>
+is a method of solving constraint problems that are widely used in
+machine learning. By using adaptive penalty coefficients to enforce
+constraints, Lagrangian methods convert the solution of a constrained
+optimization problem to the solution of an unconstrained optimization
+problem. In the body section we will briefly introduce Lagrangian
+methods and give Corresponding implementations in TRPO and PPO. TRPO is
+the algorithm we introduced earlier, if you lack understanding of it, it
+doesn’t matter. Please read the TRPO tutorial we wrote, you will soon
+understand how it works. PPO is a derivative variant of TRPO, and you
+may not know much about it yet, but we’ll go into more detail in the
+body section. At the same time, if you are new to Lagrangian methods, we
+give the specific mathematical derivation in the appendix. Read the
+appendix in detail and you will gain an idea about the algorithm for
+solving multi-objective optimization problems.</p>
+</section>
+<section id="target">
+<h3>Target<a class="headerlink" href="#target" title="Permalink to this heading"></a></h3>
+<p>As we mentioned in the previous chapters, the optimization problem of
+CMDPs can be expressed as:</p>
+<div class="math notranslate nohighlight">
+\[\underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{1}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t. \quad\eta_{C}(\pi)\le d\]</div>
+<p>where <span class="math notranslate nohighlight">\(\prod_{\theta}\subseteq\prod\)</span> denotes the set of
+parametrized policies with parameters <span class="math notranslate nohighlight">\(\theta\)</span>. In local policy
+search for CMDPs, we additionally require policy iterates to be feasible
+for the CMDP, so instead of optimizing over <span class="math notranslate nohighlight">\(\prod_{\theta}\)</span>,
+algorithm should optimize over <span class="math notranslate nohighlight">\(\prod_{\theta}\cap\prod_{C}\)</span>.
+Specifically, for the TRPO and PPO algorithms we use in this article,
+constraints on the differences between old and new policies should also
+be added. To solve this constraint problem, please read the tutorial on
+TRPO and will not repeat it here. The final optimization goals are as
+follows:</p>
+<div class="math notranslate nohighlight">
+\[\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{2}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}s.t. \quad\eta_{C}(\pi)\le d\\ D(\pi,\pi_k)\le\delta\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(D\)</span> is some distance measure and <span class="math notranslate nohighlight">\(\delta\)</span> is the step
+size.</p>
+</section>
+<section id="key-equations">
+<h3>Key Equations<a class="headerlink" href="#key-equations" title="Permalink to this heading"></a></h3>
+<p>Here we will show you the main contents of Lagrangian methods and PPO,
+please refer to the appendix for a detailed proof of these theories.This
+section is divided by three parts as below:</p>
+<ul class="simple">
+<li><p>Lagrangian methods.</p></li>
+<li><p>PPO.</p></li>
+</ul>
+<p>Before we get into the first part, we’ll give some of the meaning of the
+basic symbols in reinforcement learning so that you can better
+understand the formulas presented below</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Symbol</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(s\)</span></p></td>
+<td><p>state</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(a\)</span></p></td>
+<td><p>action</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R(s,a,s^{'})\)</span></p></td>
+<td><p>reward function</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\gamma\)</span></p></td>
+<td><p>discount factor</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(Q^{\pi}(s,a)\)</span></p></td>
+<td><p>state-action value function</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(V^{\pi}(s)\)</span></p></td>
+<td><p>state value functions</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(A^{\pi}(s,a)\)</span></p></td>
+<td><p>advantage functions</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(A_{C}^{\pi}(s,a)\)</span></p></td>
+<td><p>advantage functions for costs</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\pi(a\vert s)\)</span></p></td>
+<td><p>the probability of selecting action a in state s</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\theta\)</span></p></td>
+<td><p>the parameters for policy <span class="math notranslate nohighlight">\(\pi\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<section id="lagrangian-methods">
+<h4>Lagrangian methods<a class="headerlink" href="#lagrangian-methods" title="Permalink to this heading"></a></h4>
+<p>Constrained MDP’s are often solved using the Lagrange methods. In
+Lagrange methods, the CMDP is converted into an equivalent unconstrained
+problem.. In addition to the objective, a penalty term is added for
+infeasibility, thus making infeasible solutions sub-optimal. Given a
+CMDP <span class="math notranslate nohighlight">\((1)\)</span>, the unconstrained problem can be written as:</p>
+<div class="math notranslate nohighlight">
+\[\underset{\lambda\ge 0}{min}\,\underset{\theta}{max}\,G(\lambda,\theta)=\underset{\lambda\ge 0}{min}\,\underset{\theta}{max}\,[(1-\lambda)\eta(\pi)]\tag{3}\]</div>
+<p>where <span class="math notranslate nohighlight">\(G\)</span> is the Lagrangian and <span class="math notranslate nohighlight">\(\lambda\ge 0\)</span> is the
+Lagrange multiplier (a penalty coefficient). Notice, as <span class="math notranslate nohighlight">\(\lambda\)</span>
+increases, the solution to <span class="math notranslate nohighlight">\((3)\)</span> converges to that of <span class="math notranslate nohighlight">\((2)\)</span>.
+This suggests a two-timescale approach: on the faster timescale, θ is
+found by solving <span class="math notranslate nohighlight">\((3)\)</span>, while on the slower timescale, λ is
+increased until the constraint is satisfied. The goal is to find a
+saddle point <span class="math notranslate nohighlight">\((\theta^{*}(\lambda^{*}),\lambda^{*})\)</span> of
+<span class="math notranslate nohighlight">\((3)\)</span>, which is a feasible solution.(A feasible solution of the
+CMDP is a solution which satisfies <span class="math notranslate nohighlight">\(\eta_C(\pi)\le d\)</span>) We’ll give
+a more intuitive explanation of Lagrangian methods, which may be less
+rigorous, but will help beginners better understand how it works. In the
+classical strategy gradient descent algorithm, we train the agent in the
+direction of maximizing the reward. If a certain action <span class="math notranslate nohighlight">\(a\)</span> in
+state <span class="math notranslate nohighlight">\(s\)</span> can bring a relatively higher reward, we increase the
+probability that the agent will choose action <span class="math notranslate nohighlight">\(a\)</span> under <span class="math notranslate nohighlight">\(s\)</span>,
+and conversely, we will reduce this probability.Lagrangian methods just
+adds two extra steps to the above process. One is to make adjustments to
+the reward function, and if the agent’s actions violate the constraint,
+the reward will be reduced accordingly. The second is a slow update of
+the penalty factor. If the agent violates fewer constraints, the penalty
+coefficient will gradually decrease, and conversely, it will gradually
+increase.</p>
+</section>
+<section id="ppo">
+<h4>PPO<a class="headerlink" href="#ppo" title="Permalink to this heading"></a></h4>
+<p><a class="reference external" href="https://arxiv.org/abs/1707.06347">Proximal Policy Optimization(PPO)</a>
+is a reinforcement learning method inheriting some of the benefits of
+trust region policy optimization (TRPO), but are much simpler to
+implement. PPO share the same target with TRPO: how can we take a as big
+as improvement step on a policy update using the data we already have,
+without stepping so far that we accidentally cause performance collapse?
+Instead of solving this problem with a complex second-order method as
+TRPO do, PPO use a few other tricks to keep new policies close to old.
+There are two primary variants of PPO: <strong>PPO-Penalty</strong> and <strong>PPO-Clip</strong>.</p>
+<section id="ppo-penalty">
+<h5>PPO-Penalty<a class="headerlink" href="#ppo-penalty" title="Permalink to this heading"></a></h5>
+<p>TRPO actually suggests using a penalty instead of a constraint to solve
+the unconstrained optimization problem:</p>
+<div class="math notranslate nohighlight">
+\[\underset{\theta}{max} E[\frac{\pi_{\theta}(a|s)}{\pi_{\theta_{old}}(a|s)}\hat A^{\pi}(s,a)-\beta D_{KL}[\pi_{\theta_{old}}(*|s),\pi_{\theta}(*|s)]]\tag{4}\]</div>
+<p>However, experiments show that it is not sufficient to simply choose a
+fixed penalty coefficient <span class="math notranslate nohighlight">\(\beta\)</span> and optimize the penalized
+objective Equation <span class="math notranslate nohighlight">\((4)\)</span> with SGD(stochastic gradient descent), so
+finally TRPO abandoned this method. PPO-Penalty use an approach named
+Adaptive KL Penalty Coefficient to solve above problem, thus making
+<span class="math notranslate nohighlight">\((4)\)</span> perform well in experiment. In the simplest instantiation of
+this algorithm, PPO-Penalty perform the following steps in each policy
+update: * Using several epochs of minibatch SGD, optimize the
+KL-penalized objective shown as <span class="math notranslate nohighlight">\((4)\)</span> * Compute
+<span class="math notranslate nohighlight">\(D_{KL}= E[KL[\pi_{\theta_{old}}(*|s),\pi_{\theta}(*|s)]]\)</span> * If
+<span class="math notranslate nohighlight">\(D_{KL}\le \delta/1.5\)</span>, <span class="math notranslate nohighlight">\(\beta \leftarrow \beta/2\)</span> * If
+<span class="math notranslate nohighlight">\(D_{KL}\ge \delta\times1.5\)</span>, <span class="math notranslate nohighlight">\(\beta \leftarrow \beta\times2\)</span></p>
+<p>The updated <span class="math notranslate nohighlight">\(\beta\)</span> is used for the next policy update.</p>
+</section>
+<section id="ppo-clip">
+<h5>PPO-Clip<a class="headerlink" href="#ppo-clip" title="Permalink to this heading"></a></h5>
+<p>Let <span class="math notranslate nohighlight">\(r(\theta)\)</span> denote the probability ratio
+<span class="math notranslate nohighlight">\(r(\theta)=\frac{\pi_{\theta}(a|s)}{\pi_{\theta_{old}}(a|s)}\)</span>,
+PPO-Clip rewrite the surrogate objective as:</p>
+<div class="math notranslate nohighlight">
+\[\eta^{CLIP}(\pi)=E[min(r(\theta) \hat A(s,a),clip(r(\theta),1-\varepsilon,1+\varepsilon)\hat A(s|a))]\tag{5}\]</div>
+<p>in which <span class="math notranslate nohighlight">\(\varepsilon\)</span> is a (small) hyperparameter which roughly
+says how far away the new policy is allowed to go from the old. This is
+a very complex fomula, and it’s diffcult to tell at first glance what
+it’s doing, or how it helps keep the new policy close to the old policy.
+To help you better understand the above expression, let
+<span class="math notranslate nohighlight">\(L(s,a,\theta)\)</span> denote
+<span class="math notranslate nohighlight">\(r(\theta) \hat A(s,a),clip(r(\theta),1-\varepsilon,1+\varepsilon)\hat A(s|a)\)</span>
+, we’ll simplify the formula in two cases： * When Advantage is
+negative, we can rewrite <span class="math notranslate nohighlight">\(L(s,a,\theta)\)</span> as:</p>
+<div class="math notranslate nohighlight">
+\[L(s,a,\theta)=max(r(\theta),(1-\varepsilon))\hat A(s,a)\]</div>
+<p>* When Advantage is negative, we can rewrite <span class="math notranslate nohighlight">\(L(s,a,\theta)\)</span> as:</p>
+<div class="math notranslate nohighlight">
+\[L(s,a,\theta)=max(r(\theta),(1+\varepsilon))\hat A(s,a)\]</div>
+<p>With above cliped surrogate function and <span class="math notranslate nohighlight">\((5)\)</span>, PPO-Clip can
+guarantee the new policy would not update so far away from the old. In
+experiment, PPO-Clip perform better that PPO-Penalty. You may still have
+a question: Why are we using <span class="math notranslate nohighlight">\(\hat A\)</span> instead of <span class="math notranslate nohighlight">\(A\)</span> and
+what is that mean? Actually this is a trick named generalized advantage
+estimator(GAE). Almost all advanced reinforcement learning algorithms
+use GAE technique to make more efficient estimates of <span class="math notranslate nohighlight">\(A\)</span>.
+<span class="math notranslate nohighlight">\(\hat A\)</span> is the GAE version of <span class="math notranslate nohighlight">\(A\)</span>. If you are not famliar
+with GAE, it does not matter. A detailed introduction of GAE is provided
+in appendix and We believe you will quickly understand it.</p>
+</section>
+</section>
+<section id="summary">
+<h4>Summary<a class="headerlink" href="#summary" title="Permalink to this heading"></a></h4>
+<p>In this section we briefly describe how to convert a constrained
+optimization problem into an unconstrained optimization problem through
+the Lagrange method, and briefly introduce the PPO algorithm. In the
+next section, we will look at how to combine the Lagrange method with
+TRPO or PPO to get our final optimization algorithm.</p>
+</section>
+</section>
+</section>
+<section id="practical-implementation">
+<h2>Practical Implementation<a class="headerlink" href="#practical-implementation" title="Permalink to this heading"></a></h2>
+<p>In fact, as long as you understand the TRPO, PPO, and Lagrange methods,
+the implementation process will be very simple. The introduction of the
+Lagrange method into TARP and PPO requires only two steps to make
+changes: * Policy update * Lagrange multiplier update</p>
+<section id="policy-update">
+<h3>Policy update<a class="headerlink" href="#policy-update" title="Permalink to this heading"></a></h3>
+<p>Previously, in TRPO and PPO, we used to have the agent sample a series
+of data from the environment, and at the end of the episode, use this
+data to update the agent several times, as described in <span class="math notranslate nohighlight">\((1)\)</span>.
+With the addition of the Lagrange method, we need to make a change to
+the original, as it is shown as below:</p>
+<div class="math notranslate nohighlight">
+\[\underset{\pi\in\prod_{\theta}}{max}\,(1-\lambda)\eta(\pi)\tag{6}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t. \,D(\pi,\pi_k)\le\delta\]</div>
+<p>In a word, we only need to punish the agent with its reward by
+<span class="math notranslate nohighlight">\(\lambda\)</span> with each step of updates. In fact, this is just a minor
+change made on TRPO and PPO.</p>
+</section>
+<section id="lagrange-multiplier-update">
+<h3>Lagrange multiplier update<a class="headerlink" href="#lagrange-multiplier-update" title="Permalink to this heading"></a></h3>
+<p>After all rounds of policy updates to the agent are complete, We will
+perform an update on the Lagrange multiplier, that is:</p>
+<div class="math notranslate nohighlight">
+\[\underset{\lambda}{min}\,(1-\lambda)\eta(\pi)\tag{7}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t. \,\lambda \ge0\]</div>
+<p>Specifically, On the <span class="math notranslate nohighlight">\(k^{th}\)</span> update, the above equation is often
+written as below in the actual calculation process:</p>
+<div class="math notranslate nohighlight">
+\[\lambda_{k+1}=max(\lambda_k+lr_{\lambda}(\eta_C(\pi)-d),0)\]</div>
+<p>where <span class="math notranslate nohighlight">\(lr_{\lambda}\)</span> is the learning rate of <span class="math notranslate nohighlight">\(\lambda\)</span>.</p>
+</section>
+<section id="conclusion">
+<h3>conclusion<a class="headerlink" href="#conclusion" title="Permalink to this heading"></a></h3>
+<p>Ultimately, we only need to add the above two steps to the TRPO and PPO,
+then we will get the TRPO-lag and the PPO-lag. <strong>Please attention</strong>. In
+pratice, We often need to manually set the initial value of
+<span class="math notranslate nohighlight">\(\lambda\)</span> as well as the learning rate. Unfortunately, Lagrange
+algorithms are algorithms that are sensitive to hyperparameter
+selection. If the initial value of A or learning rate is chosen to be
+large, the agent may suffer from a low reward, while on the contray, it
+may violate the constriants. So we often struggle to choose a compromise
+hyperparameter to balance reward and constraints.</p>
+</section>
+</section>
+<section id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/1705.10528">Constrained Policy
+Optimization</a></p></li>
+<li><p><a class="reference external" href="https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf">A Natural Policy
+Gradient</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/1502.05477">Trust Region Policy
+Optimization</a></p></li>
+<li><p><a class="reference external" href="https://www.semanticscholar.org/paper/Constrained-Markov-Decision-Processes-Altman/3cc2608fd77b9b65f5bd378e8797b2ab1b8acde7">Constrained Markov Decision
+Processes</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/pdf/1506.02438.pdf">Generalized Advantage
+Estimation</a></p></li>
+</ul>
+</section>
+<section id="appendix">
+<h2>Appendix<a class="headerlink" href="#appendix" title="Permalink to this heading"></a></h2>
+<section id="lagrangian-methods-1">
+<span id="id1"></span><h3>Lagrangian methods<a class="headerlink" href="#lagrangian-methods-1" title="Permalink to this heading"></a></h3>
+<p>In this section, we will first introduce you to the theorem of Lagrange
+problem and Lagrange dual problem. Subsequently, we will show that when
+optimizing the conditions of the problem with strong duality, the
+solution of the Lagrange problem can be transformed into the solution of
+the Lagrange dual problem, and thus we get the equation <span class="math notranslate nohighlight">\((3)\)</span> in
+the body section. #### Introduction of Lagrangian function Consider a
+general optimization problem (called as primal problem)</p>
+<div class="math notranslate nohighlight">
+\[\underset{x}{min}\,f(x)\tag{1}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t.\,h_i(x)\le 0,\,i=1,...m\]</div>
+<div class="math notranslate nohighlight">
+\[l_j(x)=0,\,j=1,...r\]</div>
+<p>We define its Lagrangian as</p>
+<div class="math notranslate nohighlight">
+\[G(x,u,v)=f(x)+\sum_{i=1}^mu_ih_i(x)+\sum_{j=1}^rv_jl_j(x)\tag{2}\]</div>
+<p>Lagrange multipliers <span class="math notranslate nohighlight">\(u\in R^m\)</span>, <span class="math notranslate nohighlight">\(v\in R^r\)</span>.</p>
+<section id="introduction-of-lagrangian-dual-function">
+<h4>Introduction of Lagrangian dual function<a class="headerlink" href="#introduction-of-lagrangian-dual-function" title="Permalink to this heading"></a></h4>
+<p>Given a Lagrangian, we define its Lagrange dual function as:
+<span class="math notranslate nohighlight">\(g(u,v)=\underset x{inf}G(x,u,v)\)</span> It is worth mentioning that the
+infimum here does not require x to be taken in the feasible set.</p>
+</section>
+<section id="lemma1">
+<h4>Lemma1<a class="headerlink" href="#lemma1" title="Permalink to this heading"></a></h4>
+<p>The optimal value of the primal problem, named as <span class="math notranslate nohighlight">\(f^{*}\)</span>,
+satisfies:</p>
+<div class="math notranslate nohighlight">
+\[f^{*}=\underset{x}{inf}\underset{u\ge 0,v}{sup}G(x,u,v)\tag{3}\]</div>
+<p><strong>Proof.</strong> First considering feasible <span class="math notranslate nohighlight">\(x\)</span> (marked as
+<span class="math notranslate nohighlight">\(x\in C\)</span>), we have <span class="math notranslate nohighlight">\(f^{*}\)</span> =
+<span class="math notranslate nohighlight">\(inf_{x\in C}sup_{u\ge 0,v}L(x,u,v)\)</span>. Second considering
+non-feasible <span class="math notranslate nohighlight">\(x\)</span>, since <span class="math notranslate nohighlight">\(sup_{u\ge 0,v}L(x,u,v)=\infty\)</span> for
+any <span class="math notranslate nohighlight">\(x\notin C\)</span>,
+<span class="math notranslate nohighlight">\(inf_{x\notin C}sup_{u\ge 0,v}L(x,u,v)=\infty\)</span>. In total,
+<span class="math notranslate nohighlight">\(f^{*}=inf_xsum_{u\ge 0,v}L(x,u,v)\)</span>.</p>
+</section>
+<section id="lemma2">
+<h4>Lemma2<a class="headerlink" href="#lemma2" title="Permalink to this heading"></a></h4>
+<p>The optimal value of the dual problem, named as <span class="math notranslate nohighlight">\(g^{*}\)</span>,
+satisfies:</p>
+<div class="math notranslate nohighlight">
+\[g^{*}=\underset{u\ge 0,v}{sup}\underset{x}{inf}G(x,u,v)\tag{4}\]</div>
+<p><strong>Proof.</strong> From the definitions, we have</p>
+<div class="math notranslate nohighlight">
+\[g^{*}=\underset{u\ge 0,v}{sup}g(u,v)=\underset{u\ge 0,v}{sup}\underset{x}{inf}G(x,u,v)\]</div>
+<p>Although the primal problem is not required to be convex, the dual
+problem is always convex.</p>
+</section>
+<section id="conclusion-1">
+<span id="id2"></span><h4>Conclusion<a class="headerlink" href="#conclusion-1" title="Permalink to this heading"></a></h4>
+<p>In convex optimization theory, if the problem satisfies the strong
+duality condition, then the solution of the prime problem is equivalent
+to the solution of the dual problem. Then we obtain:</p>
+<div class="math notranslate nohighlight">
+\[f^{*}=g^{*}\quad with\,strong\,duality\tag{5}\]</div>
+</section>
+</section>
+<section id="generalized-advantage-estimation">
+<h3>Generalized Advantage Estimation<a class="headerlink" href="#generalized-advantage-estimation" title="Permalink to this heading"></a></h3>
+<p>In policy gradient method, an update step should increase the
+probability of better-than-average actions and decrease the probability
+of worse-than average actions. It corresponds to the optimization
+problem:</p>
+<div class="math notranslate nohighlight">
+\[max\,E[\sum_0^{\infty}\psi_t\nabla_{\theta}log\pi_{\theta}(a_t|s_t)]\]</div>
+<p>So, an expected reward function is needed to measure whether or not the
+action is better or worse than the policy’s default behavior. At each
+timestep <span class="math notranslate nohighlight">\(t\)</span>, We tend to have two ways to choose it: * TD-based
+method</p>
+<div class="math notranslate nohighlight">
+\[V^{\pi}(s_t)=E_{\tau\sim\pi}(\sum_{l=0}^{\infty}\gamma^lr_{t+l})\quad Q^{\pi}(s_t,a_t)=E_{\tau\sim\pi}(\sum_{l=0}^{\infty}\gamma^lr_{t+l})\]</div>
+<div class="math notranslate nohighlight">
+\[\psi_t=A^{\pi}(s_t,a_t)=Q^{\pi}(s_t,a_t)-V^{\pi}(s_t)\tag{6}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\gamma\)</span> is the discount factor used in discounted
+formulations of MDPs. Since the value function of TD-based method is
+estimated by a parameterized neural network, it is biased, but because
+Method A involves fewer parameters, its variance is small. * MC-based
+method</p>
+<div class="math notranslate nohighlight">
+\[\psi_t=\sum_{t^{'}=t}^{\infty}r_{t^{'}}\tag{7}\]</div>
+<p>MC-based method has no bias because it directly estimates the actual
+value of reward, but it is more biased because reward is a
+high-dimensional random variable.</p>
+<p>There is no way to get an estimation method that has both small variance
+and unbiased characteristics. But we want to have a way of estimating
+balance bias and variance. One naïve idea is to use MC-based estimation
+in part and TD-based estimation in part. That’s why GAE was proposed.
+Next we will show how to get an advantage function <span class="math notranslate nohighlight">\(\hat A^{GAE}\)</span>
+by GAE method. First, define <span class="math notranslate nohighlight">\(d^V_t=r_t+\gamma V(s_{t+1})-V(s_t)\)</span>,
+where <span class="math notranslate nohighlight">\(V\)</span> is an estimator for <span class="math notranslate nohighlight">\(V^{\pi}\)</span>. Next, let us
+consider taking the sum of <span class="math notranslate nohighlight">\(k\)</span> of these <span class="math notranslate nohighlight">\(d\)</span> terms, which we
+will denote by <span class="math notranslate nohighlight">\(\hat A^{(k)}_t\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\hat{A}_t^{(1)}=d_t^V=-V\left(s_t\right)+r_t+\gamma V\left(s_{t+1}\right)\]</div>
+<div class="math notranslate nohighlight">
+\[\hat{A}_t^{(2)}=d_t^V+\gamma d_{t+1}^V =-V\left(s_t\right)+r_t+\gamma r_{t+1}+\gamma^2 V\left(s_{t+2}\right)\]</div>
+<div class="math notranslate nohighlight">
+\[\hat{A}_t^{(3)}=d_t^V+\gamma d_{t+1}^V+\gamma^2 d_{t+2}^V=-V\left(s_t\right)+r_t+\gamma r_{t+1}+\gamma^2 r_{t+2}+\gamma^3 V\left(s_{t+3}\right)\]</div>
+<div class="math notranslate nohighlight">
+\[\hat{A}_t^{(k)}=\sum_{l=0}^{k-1} \gamma^l d_{t+l}^V=-V\left(s_t\right)+r_t+\gamma r_{t+1}+\cdots+\gamma^{k-1} r_{t+k-1}+\gamma^k V\left(s_{t+k}\right)\]</div>
+<p>The generalized advantage estimator <span class="math notranslate nohighlight">\(GAE(\gamma,\lambda)\)</span> is
+defined as the exponentially-weighted average of these estimators:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\hat{A}_t^{(\gamma, \lambda)}=&amp;(1-\lambda)\left(\hat{A}_t^{(1)}+\lambda \hat{A}_t^{(2)}+\lambda^2 \hat{A}_t^{(3)}+\ldots\right) \\
+=&amp;(1-\lambda)\left(d_t^V+\lambda\left(d_t^V+\gamma d_{t+1}^V\right)+\lambda^2\left(d_t^V+\gamma d_{t+1}^V+\gamma^2 d_{t+2}^V\right)+\ldots\right) \\
+=&amp;(1-\lambda)\left(d_t^V\left(1+\lambda+\lambda^2+\ldots\right)+\gamma d_{t+1}^V\left(\lambda+\lambda^2+\lambda^3+\ldots\right)\right.\\
+&amp;\left.\quad+\gamma^2 d_{t+2}^V\left(\lambda^2+\lambda^3+\lambda^4+\ldots\right)+\ldots\right) \\
+=&amp;(1-\lambda)\left(d_t^V\left(\frac{1}{1-\lambda}\right)+\gamma d_{t+1}^V\left(\frac{\lambda}{1-\lambda}\right)+\gamma^2 d_{t+2}^V\left(\frac{\lambda^2}{1-\lambda}\right)+\ldots\right)
+\end{aligned}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\hat{A}_t^{(\gamma, \lambda)}=\sum_{l=0}^{\infty}(\gamma \lambda)^l d_{t+l}^V\tag{8}\]</div>
+<p>There are two notable special cases of this formula, obtained by setting
+<span class="math notranslate nohighlight">\(\lambda =0\)</span> and <span class="math notranslate nohighlight">\(\lambda=1\)</span>.</p>
+<div class="math notranslate nohighlight">
+\[GAE(\gamma,0):\hat A_t=d_t=r_t+\gamma V(s_{t+1})-V(s_t)\tag{9}\]</div>
+<div class="math notranslate nohighlight">
+\[GAE(\gamma,1):\hat A_t=\sum_{l=0}^{\infty}(\gamma ^ld_{t+l})=\sum_{l=0}^{\infty}(\gamma ^lr_{t+l})-V(s_t)\tag{10}\]</div>
+<p>If <span class="math notranslate nohighlight">\(\lambda=0\)</span>, GAE is a TD-based method, while <span class="math notranslate nohighlight">\(\lambda=1\)</span>
+that is a MC-based method. The generalized advantage estimator for
+<span class="math notranslate nohighlight">\(0\lt\lambda\lt 1\)</span> makes a compromise between bias and variance,
+controlled by parameter <span class="math notranslate nohighlight">\(\lambda\)</span>.</p>
+</section>
+</section>
+</section>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2022, OmniSafe Team.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.8.0.
+</div>
+            </div>
+          </div>
+      </page>
+    </div></div>
+    
+    
+  </body>
+</html>

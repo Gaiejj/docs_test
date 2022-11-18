@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trust Region Policy Optimization &mdash; OmniSafe 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> OmniSafe
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Introduction.html">Introudction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Installation.html">Installation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OmniSafe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Trust Region Policy Optimization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/saferl/trpo_docs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="trust-region-policy-optimization">
+<h1><a class="reference external" href="https://arxiv.org/abs/1502.05477">Trust Region Policy Optimization</a><a class="headerlink" href="#trust-region-policy-optimization" title="Permalink to this heading"></a></h1>
+<section id="introduction-of-algorithm">
+<h2>Introduction of algorithm<a class="headerlink" href="#introduction-of-algorithm" title="Permalink to this heading"></a></h2>
+<section id="background">
+<h3>Background<a class="headerlink" href="#background" title="Permalink to this heading"></a></h3>
+<p>Comparing with normal policy gradient method, which only use the most
+recent trajectory to learn policy, TRPO make the use of old knowledge
+with the importance sampling and KL-Divergence constrain methods. TRPO
+promise that the policy will be imporved in each iteration untill it
+converge to the optimal policy. TRPO is also a policy-based method which
+similar to <a class="reference external" href="https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf">natural policy gradient
+methods</a>,
+but it has several improvments over NPG. NPG use KL-Divergence and
+Fisher information matrix to determine the step size and the direction
+of gradient descent. However, computing and storing the Fisher
+information matrix is painfully expensive with neural network policies
+with thousands of millions of parameters. TRPO replace this computing
+process with an simpler one and use backtracking line search to improve
+the step size of NPG.</p>
+</section>
+<section id="key-equations">
+<h3>Key Equations<a class="headerlink" href="#key-equations" title="Permalink to this heading"></a></h3>
+<p>Let <span class="math notranslate nohighlight">\(\pi\)</span> denote a stochastic policy
+<span class="math notranslate nohighlight">\(\pi:S \times A \to[0,1]\)</span>, and let <span class="math notranslate nohighlight">\(\eta(\pi)\)</span> denote its
+expected discounted reward:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\pi)=E_{s0,a0,...}[\sum_{t=0}^{\infty}\gamma^tr(s_t)]\]</div>
+<p>The expected return of another policy <span class="math notranslate nohighlight">\(\hat\pi\)</span> in terms of the
+advantage over <span class="math notranslate nohighlight">\(\pi\)</span> can be expressed as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\eta(\hat\pi)=\eta(\pi)+E_{s0,a0,...\hat\pi}[\sum_{t=0}^{\infty}\gamma^tA_\pi(s_t,a_t)]\\
+=\eta(\pi)+\sum_s\rho_{\hat\pi}(s)\sum_a\hat\pi(a|s)A_{\pi}(s,a)\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[where\quad \rho_{\hat\pi}=P(s_0=s)+\gamma P(s_1=s)+\gamma ^2P(s_2=s)...\]</div>
+<p>If the policy <span class="math notranslate nohighlight">\(\hat\pi(s)\)</span> is defined as
+<span class="math notranslate nohighlight">\(\hat\pi(s)=arg max_aA_{\pi}(s,a)\)</span>, at each iteration the
+advantage function <span class="math notranslate nohighlight">\(A_{\pi}\)</span> will be positive and the policy will
+be better and better. Actually, it is difficult to directly compute the
+value of <span class="math notranslate nohighlight">\(\eta(\hat\pi)\)</span>, because we need the new policy
+<span class="math notranslate nohighlight">\(\hat\pi\)</span> to get the new trajectory <span class="math notranslate nohighlight">\(\rho_{\hat\pi}\)</span>, which
+is painfully expensive to compute, so TRPO use a surrogate advantage
+function <span class="math notranslate nohighlight">\(L_{\hat\pi}\)</span> to estimate <span class="math notranslate nohighlight">\(\eta(\hat\pi)\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[L_{\hat\pi}=\eta(\pi)+\sum_s\rho_{\pi}(s)\sum_a\hat\pi(a|s)A_{\pi}(s,a)\]</div>
+<p>TRPO can use <span class="math notranslate nohighlight">\(L_{\hat\pi}\)</span> to estimate <span class="math notranslate nohighlight">\(\eta(\hat\pi)\)</span>
+because both function matches to each other to first order, so, for any
+parameter value <span class="math notranslate nohighlight">\(\theta_0\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[L_{\pi_{\theta_0}}(\pi_{\theta_0})=\eta(\pi_{\theta_0})\]</div>
+<div class="math notranslate nohighlight">
+\[\nabla_{\theta}L_{\pi_{\theta_0}}(\pi_{\theta})|_{\theta=\theta_0}=\nabla_{\theta}\eta(\pi_{\theta})|_{\theta=\theta_0}\]</div>
+<p>TRPO proved that <span class="math notranslate nohighlight">\(\eta(\hat\pi)\)</span>has a lower bound:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\hat\pi)\ge L_{\hat\pi}-CD_{KL}^{max}(\pi,\hat\pi)\]</div>
+<div class="math notranslate nohighlight">
+\[where\quad C=\frac{4\epsilon\gamma}{(1-\gamma)^2}\alpha^2\]</div>
+<div class="math notranslate nohighlight">
+\[\epsilon=max_{s,a}|A_{\pi}(s,a)|\]</div>
+<p><span class="math notranslate nohighlight">\(D_{KL}^{max}(\pi,\hat\pi)\)</span> denotes the KL-Divergence between two
+policy. TRPO proved that by maximizing
+<span class="math notranslate nohighlight">\(L_{\hat\pi}-CD_{KL}^{max}(\pi,\hat\pi)\)</span> at each iteration, the
+true objective <span class="math notranslate nohighlight">\(\eta\)</span> is none decreasing, thus the performance of
+policy will be better. Let <span class="math notranslate nohighlight">\(\theta\)</span> denotes <span class="math notranslate nohighlight">\(\pi_{\theta}\)</span>,
+<span class="math notranslate nohighlight">\(\theta_{old}\)</span> denotes <span class="math notranslate nohighlight">\(\pi_{\theta_{old}}\)</span>, where
+<span class="math notranslate nohighlight">\(\theta\)</span> is the parameters of policy <span class="math notranslate nohighlight">\(\pi\)</span>, the optimal
+question will become:</p>
+<div class="math notranslate nohighlight">
+\[max_\theta[L_{\theta}-CD_{KL}^{max}(\theta,\theta_{old})]\]</div>
+<p>However, in pratice the step size would be very small if we try to use
+the above equation to make gradient descent. TRPO proposed a robust way
+which use a constraint on the KL divergence between the new and old
+policy to solve above optimal question:</p>
+<div class="math notranslate nohighlight">
+\[max_{\theta}L_{\hat\theta}\]</div>
+<div class="math notranslate nohighlight">
+\[subject\, to \quad \hat D_{KL}^{\rho_{\theta _{old}}}(\theta_{old})\le \delta\]</div>
+<div class="math notranslate nohighlight">
+\[where \quad D_{KL}^{\rho_{\theta _{old}}}(\theta_{old})=E_{s\sim\rho}[D_{KL}(\pi_{\theta_1}(*|s)||\pi_{\theta2}(*|s))]\]</div>
+<p>TRPO finally replace the max KL-Divergence with the average
+KL-Divergence, which allow the step size larger in learning process.</p>
+</section>
+</section>
+<section id="experiment-details">
+<h2>Experiment details<a class="headerlink" href="#experiment-details" title="Permalink to this heading"></a></h2>
+<section id="importance-sampling">
+<h3>Importance sampling<a class="headerlink" href="#importance-sampling" title="Permalink to this heading"></a></h3>
+<p>TRPO use Monte Carlo simulation to solve above constrain, so it use
+importance sampling to rewrite the original problem as:</p>
+<div class="math notranslate nohighlight">
+\[max_{\theta}E_{s\sim \rho_{\theta_{old}}a\sim q}[\frac{\pi_{\theta}(a|s)}{q(a|s)}Q_{\theta_{old}}(s,a)]\]</div>
+<div class="math notranslate nohighlight">
+\[subject \, to \, E_{s \sim \rho_{\theta_{old}}}[D_{KL}(\pi_{\theta_{old}}(*|s))|(\pi_{\theta})(*|s)]\le\delta\]</div>
+<p>General speaking, TRPO use the data sampled by old policy to learn
+policy many times, while keeping the constrain of KL-Divergence. TRPO
+will compute update direction and step size to guarantee that
+constraint.</p>
+</section>
+<section id="conjugate-gradient">
+<h3>Conjugate gradient<a class="headerlink" href="#conjugate-gradient" title="Permalink to this heading"></a></h3>
+<p>To solve the above constrained optimal problem, a search direction
+process is needed. The search direction is computed by approximately
+solving the equation: <span class="math notranslate nohighlight">\(Ax=g\)</span>, where <span class="math notranslate nohighlight">\(A\)</span> is the Fisher
+information matrix,i.e., the KL-DIvergence constraint will be
+approximately denoted as
+<span class="math notranslate nohighlight">\(\frac{1}{2}(\theta -\theta_{old})^TA(\theta-\theta_{old})\)</span>.
+Unlike NPG, which form the whole Fisher information matrix in gradient
+desecnt, TRPO use conjugate gradient method to more efficiently compute
+matrix-vector products <span class="math notranslate nohighlight">\(s \approx A^{-1}g\)</span> with the Fisher
+information matrix.</p>
+</section>
+<section id="linear-searching-of-learning-rate">
+<h3>Linear searching of learning rate<a class="headerlink" href="#linear-searching-of-learning-rate" title="Permalink to this heading"></a></h3>
+<p>Having computed the search direction <span class="math notranslate nohighlight">\(s \approx A^{-1}g\)</span>, TRPO
+next compute the maximal step length <span class="math notranslate nohighlight">\(\beta\)</span> such that
+<span class="math notranslate nohighlight">\(\theta+\beta s\)</span> will satisfy the KL-Divergence constraint. To do
+that, TRPO let <span class="math notranslate nohighlight">\(\delta=\frac{1}{2}(\beta s)^TA(\beta s)\)</span>. From
+that TRPO obtain <span class="math notranslate nohighlight">\(\beta=\sqrt{2\delta/s^TAs}\)</span>, where
+<span class="math notranslate nohighlight">\(\delta\)</span> is the desired KL divergence. Then starting with the
+initial value of <span class="math notranslate nohighlight">\(\beta\)</span>, TRPO shrink <span class="math notranslate nohighlight">\(\beta\)</span> exponentially
+untill the constriant is met, thus TRPO find the needed step size by
+linear searching.</p>
+</section>
+</section>
+<section id="code-with-omnisafe">
+<h2>Code with OmniSafe<a class="headerlink" href="#code-with-omnisafe" title="Permalink to this heading"></a></h2>
+<section id="quick-start">
+<h3>Quick start<a class="headerlink" href="#quick-start" title="Permalink to this heading"></a></h3>
+<p>We use train.py as the entrance file. You can train the agent with TRPO
+simply using <code class="docutils literal notranslate"><span class="pre">train.py</span></code>, with arguments about TRPO and enviroments
+does the training. For example, to run TRPO in Safexp-PointGoal1-v0,
+with 4 cpu cores and seed 0, you can use the following command:
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">train.py</span> <span class="pre">--env-id</span> <span class="pre">Safexp-PointGoal1-v0</span> <span class="pre">--algo</span> <span class="pre">trpo</span> <span class="pre">--cores</span> <span class="pre">4</span> <span class="pre">--seed</span> <span class="pre">0</span></code>
+Here are the documentation of TRPO in PyTorch version.</p>
+</section>
+<section id="architecture-of-functions">
+<h3>Architecture of functions<a class="headerlink" href="#architecture-of-functions" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">train()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">runner().compile()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runner().train()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.learn()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.roll_out()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.update()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.buf.get()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.update_policy_net()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Fvp()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conjugate_gradients()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">search_step_size()</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.update_cost_net()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.update_value_net()</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trpo.log()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runner().eval()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="documentation-of-functions">
+<h3>Documentation of functions<a class="headerlink" href="#documentation-of-functions" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 58%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">train()</span></code></p></td>
+<td><p>The entrance to train the trpo model</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">runner().compile()</span></code></p></td>
+<td><p>Compile the model, use mpi for
+parallel computation or run N
+individual processes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">runner().train()</span></code></p></td>
+<td><p>Train the model for a given number of
+epochs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">trpo.learn()</span></code></p></td>
+<td><p>Main function for algorithm update,
+divided into <code class="docutils literal notranslate"><span class="pre">roll_out()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">update()</span></code> and <code class="docutils literal notranslate"><span class="pre">log()</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">trpo.roll_out()</span></code></p></td>
+<td><p>Collect data and store to experience
+buffer.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">trpo.update()</span></code></p></td>
+<td><p>Update actor, critic, running
+statistics</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">trpo.buf.get()</span></code></p></td>
+<td><p>Call this at the end of an epoch to
+get all of the data from the buffer</p></td>
+</tr>
+<tr class="row-odd"><td><p>`
+<cite>trpo.update_policy_net()`</cite></p></td>
+<td><p>Add <code class="docutils literal notranslate"><span class="pre">Fvp()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">conjugate_gradients()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">search_step_size()</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Fvp()</span></code></p></td>
+<td><p>Build the Hessian-vector product based
+on an approximation of the
+KL-Divergence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">conjugate_gradients()</span></code></p></td>
+<td><p>Use conjugate gradient algorithm to
+make a fast calculating</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">search_step_size()</span></code></p></td>
+<td><p>TRPO performs line-search until
+constraint satisfaction.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">trpo.update_cost_net()</span></code></p></td>
+<td><p>Update cost network using GAE cost</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">trpo.update_value_net()</span></code></p></td>
+<td><p>Update value network using GAE reward</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">trpo.log()</span></code></p></td>
+<td><p>Get the trainning log</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">runner().eval()</span></code></p></td>
+<td><p>Eval the model</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>actor (string)</strong>: The type of network in actor, discrete of
+continuous.</p></li>
+<li><p><strong>ac_kwargs (dictionary)</strong>: Information about actor and critic’s net
+work configuration,it originates from <code class="docutils literal notranslate"><span class="pre">algo.yaml</span></code> file to describe
+<code class="docutils literal notranslate"><span class="pre">hidden</span> <span class="pre">layers</span></code> and <code class="docutils literal notranslate"><span class="pre">activation</span> <span class="pre">function</span></code>.</p>
+<ul>
+<li><p>parameters for actor network</p>
+<ul>
+<li><p>hidden_sizes:</p>
+<ul>
+<li><p>64</p></li>
+<li><p>64</p></li>
+</ul>
+</li>
+<li><p>activations: tanh</p></li>
+</ul>
+</li>
+<li><p>parameters for critic network</p>
+<ul>
+<li><p>hidden_sizes:</p>
+<ul>
+<li><p>64</p></li>
+<li><p>64</p></li>
+</ul>
+</li>
+<li><p>activations: tanh</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>env_id (string)</strong>: The name of environment we want to roll out.</p></li>
+<li><p><strong>epochs (int)</strong>: The number of epochs we want to roll out.</p></li>
+<li><p><strong>logger_kwargs (dictionary)</strong>: The information about logger
+configuration which originates from <code class="docutils literal notranslate"><span class="pre">runner</span> <span class="pre">module</span></code>.</p></li>
+<li><p><strong>adv_estimation_method (string)</strong>: The type of advantage estimation
+method.</p></li>
+<li><p><strong>algo (string)</strong>: The name of algorithm corresponding to current
+class, it does not actually affect any things which happen in the
+following.</p></li>
+<li><p><strong>check_freq (int)</strong>: The frequency for we to check if all models own
+the same parameter values.(for mpi multi-process purpose).</p></li>
+<li><p><strong>entropy_coef (float)</strong>: The discount coefficient for entropy
+penalty, if parameters<code class="docutils literal notranslate"><span class="pre">use_entropy=True</span></code>.</p></li>
+<li><p><strong>gamma (float)</strong>: The gamma for GAE.</p></li>
+<li><p><strong>max_ep_len (int)</strong>: The maximum timesteps of an episode.</p></li>
+<li><p><strong>max_grad_norm (float)</strong>: If parameters<code class="docutils literal notranslate"><span class="pre">use_max_grad_norm=True</span></code>,
+use this parameter to normalize gradient.</p></li>
+<li><p><strong>num_mini_batches (int)</strong>: The number of mini batches we want to
+update actor and critic after one epoch.</p></li>
+<li><p><strong>optimizer (string)</strong>: The type of optimizer.</p></li>
+<li><p><strong>pi_lr (float)</strong>: The learning rate of actor network.</p></li>
+<li><p><strong>vf_lr (float)</strong>: The learning rate of critic network.</p></li>
+<li><p><strong>steps_per_epoch (int)</strong>:The number of time steps per epoch.</p></li>
+<li><p><strong>target_kl (float)</strong>:Roughly what KL divergence we think is
+appropriate between new and old policies after an update. This will
+get used for early stopping. (Usually small, 0.01 or 0.05.)</p></li>
+<li><p><strong>train_pi_iterations (int)</strong>: The number of iteration when we update
+actor network per mini batch.</p></li>
+<li><p><strong>train_v_iterations (int)</strong>: The number of iteration when we update
+critic network per mini batch.</p></li>
+<li><p><strong>use_entropy (bool)</strong>: Use entropy penalty or not.</p></li>
+<li><p><strong>use_kl_early_stopping (bool)</strong>: Use KL early stopping or not.</p></li>
+<li><p><strong>use_reward_scaling (bool)</strong>: Use reward scaling or not.</p></li>
+<li><p><strong>use_reward_penalty (bool)</strong>: Use cost to penalize reward or not.</p></li>
+<li><p><strong>use_shared_weights (bool)</strong>: Use shared weights between actor and
+critic network or not.</p></li>
+<li><p><strong>use_standardized_advantages (bool)</strong>: Use standardized advantages
+or not.</p></li>
+<li><p><strong>use_standardized_obs (bool)</strong>: Use standarized observation or not.</p></li>
+<li><p><strong>weight_initialization (string)</strong>: The type of weight initialization
+method.</p></li>
+<li><p><strong>save_freq (int)</strong>: How often (in terms of gap between epochs) to
+save the current policy and value function.</p></li>
+<li><p><strong>seed (int)</strong>: The random seed of this run.</p></li>
+</ul>
+</section>
+</section>
+<section id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/1502.05477">Trust Region Policy
+Optimization</a>, Schulman et
+al. 2015</p></li>
+<li><p><a class="reference external" href="https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf">A Natural Policy
+Gradient</a>,Sham
+Kakade et al. 2002</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, OmniSafe Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

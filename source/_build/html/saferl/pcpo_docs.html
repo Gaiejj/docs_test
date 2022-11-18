@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projection-Based Constrained Policy Optimization &mdash; OmniSafe 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> OmniSafe
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Introduction.html">Introudction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Installation.html">Installation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OmniSafe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Projection-Based Constrained Policy Optimization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/saferl/pcpo_docs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="projection-based-constrained-policy-optimization">
+<h1>Projection-Based Constrained Policy Optimization<a class="headerlink" href="#projection-based-constrained-policy-optimization" title="Permalink to this heading"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<div class="line-block">
+<div class="line">Projection-Based Constrained Policy
+Optimization <a href="#id1"><span class="problematic" id="id2">:raw-latex:`\cite{pcpo}`</span></a></div>
+<div class="line">(PCPO) is an iterative method for optimizing policy in a two-step
+process: the first step performs a local reward improvement update,
+while the second step reconciles any constraint violation by
+projecting the policy back onto the constraint set.</div>
+</div>
+<p>PCPO is an improvement work done on the basis of CPO
+<a href="#id3"><span class="problematic" id="id4">:raw-latex:`\cite{cpo}`</span></a>. It provides a lower bound on reward
+improvement, and an upper bound on constraint violation, for each policy
+update just like CPO does. PCPO further characterizes the convergence of
+PCPO based on two different metrics: L2 norm and Kullback-Leibler
+divergence.</p>
+<p>In a word, PCPO is a CPO-based algorithm dedicated to solving problem of
+learning control policies that optimize a reward function while
+satisfying constraints due to considerations of safety, fairness, or
+other costs. If you have not previously learned the CPO type of
+algorithm, in order to facilitate your complete understanding of the
+PCPO algorithm ideas introduced in this section, we strongly recommend
+that you read this article after reading the CPO tutorial we wrote.</p>
+</section>
+<section id="target">
+<h2>Target<a class="headerlink" href="#target" title="Permalink to this heading"></a></h2>
+<p>In the previous chapters, you learned that CPO solves the following
+optimization problems:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+  &amp; \pi_{k+1}=\arg\max_{\pi \in \Pi_{\theta}}J^R(\pi_{\theta})\\
+  &amp; s.t.\quad D(\pi,\pi_k)\le\delta\nonumber
+  \\ &amp; J^C\left(\pi_k\right)+\underset{\substack{s \sim d^{\pi_k} \\ a \sim \pi}}{\mathbb{E}}\left[A^C_{\pi_k}(s, a)\right] \leq d.\nonumber
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\prod_{\theta}\subseteq\prod\)</span> denotes the set of
+parametrized policies with parameters <span class="math notranslate nohighlight">\(\theta\)</span>, and <span class="math notranslate nohighlight">\(D\)</span> is
+some distance measure. In local policy search for CMDPs, we additionally
+require policy iterates to be feasible for the CMDP, so instead of
+optimizing over <span class="math notranslate nohighlight">\(\prod_{\theta}\)</span>, PCPO optimizes over
+<span class="math notranslate nohighlight">\(\prod_{\theta}\cap\prod_{C}\)</span>. Next, we will introduce you to how
+PCPO solves the above optimization problems. In order for you to have a
+clearer understanding, we hope that you will read the next section with
+the following questions:</p>
+<ul class="simple">
+<li><p>What is two-stage policy update and how?</p></li>
+<li><p>What is performance bound for PCPO and how PCPO get it?</p></li>
+<li><p>How PCPO practically solve the optimal problem?</p></li>
+</ul>
+</section>
+<section id="two-stage-policy-update">
+<h2>Two-stage policy update<a class="headerlink" href="#two-stage-policy-update" title="Permalink to this heading"></a></h2>
+<p>PCPO performs policy update in two stages. The first stage maximizes
+reward using a trust region optimization method without constraints.
+This might result in a new intermediate policy that does not satisfy the
+constraints. The second stage reconciles the constraint violation (if
+any) by projecting the policy back onto the constraint set, i.e.,
+choosing the policy in the constraint set that is closest to the
+selected intermediate policy. Next, we will describe how PCPO completes
+the two-step update.</p>
+<section id="reward-improvement-step">
+<span id="pcpo-probelm1"></span><h3>Reward Improvement Step<a class="headerlink" href="#reward-improvement-step" title="Permalink to this heading"></a></h3>
+<p>First, PCPO optimizes the reward function by maximizing the reward
+advantage function <span class="math notranslate nohighlight">\(A_{\pi}(s,a)\)</span> subject to KL-Divergence
+constraint. This constraints the intermediate policy
+<span class="math notranslate nohighlight">\(\pi^{k+\frac12}\)</span> to be within a <span class="math notranslate nohighlight">\(\delta\)</span>-neighbourhood of
+<span class="math notranslate nohighlight">\(\pi_{k}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+  &amp; \pi^{k+\frac12}=\underset{\pi}{\arg\,max}\underset{s\sim d^{\pi_k}, a\sim\pi}{\mathbb{E}}[A^R_{\pi_k}(s,a)]\\
+  &amp;  s.t.\, \underset{s\sim d^{\pi_k}}{\mathbb{E}}[D_{KL}(\pi||\pi_k)[s]]\le\delta\nonumber
+\end{aligned}\end{split}\]</div>
+<p>This update rule with the trust region is called Trust Region Policy
+Optimization (TRPO) <a href="#id5"><span class="problematic" id="id6">:raw-latex:`\cite{trpo}`</span></a>. It constraints the policy
+changes to a divergence neighborhood and guarantees reward improvement.</p>
+</section>
+<section id="projection-step">
+<span id="pcpo-problem2"></span><h3>Projection step<a class="headerlink" href="#projection-step" title="Permalink to this heading"></a></h3>
+<p>Second, PCPO projects the intermediate policy <span class="math notranslate nohighlight">\(\pi_{k+\frac12}\)</span>
+onto the constraint set by minimizing a distance measure <span class="math notranslate nohighlight">\(D\)</span>
+between <span class="math notranslate nohighlight">\(\pi_{k+\frac12}\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    &amp; \pi_{k+1}=\underset{\pi}{\arg\,min}\quad D(\pi,\pi_{k+\frac12})\\
+    &amp; s.t.\quad J^C\left(\pi_k\right)+\underset{\substack{s \sim d^{\pi_k} , a \sim \pi}}{\mathbb{E}}\left[A^C_{\pi_k}(s, a)\right] \leq d.\nonumber
+\end{aligned}\end{split}\]</div>
+<p>The projection step ensures that the constraint-satisfying policy
+<span class="math notranslate nohighlight">\(\pi_{k+1}\)</span> is close to <span class="math notranslate nohighlight">\(\pi_{k+\frac12}\)</span>. Reward
+improvement step ensures that the agent’s updates are in the direction
+of maximizing rewards so as not to violate the step size of distance
+measure <span class="math notranslate nohighlight">\(D\)</span>. Projection step causes the agent to update in the
+direction of satisfying the constraint while avoiding crossing <span class="math notranslate nohighlight">\(D\)</span>
+as much as possible.</p>
+</section>
+</section>
+<section id="policy-performance-bounds">
+<h2>Policy performance bounds<a class="headerlink" href="#policy-performance-bounds" title="Permalink to this heading"></a></h2>
+<p>In safety-critical applications, how worse the performance of a system
+evolves when applying a learning algorithm is an important issue. For
+the two cases where the agent satisfies the constraint and does not
+satisfy the constraint, PCPO provides worst-case performance bound
+respectively.</p>
+<div class="theorem docutils container">
+<p>Define
+<span class="math notranslate nohighlight">\(\epsilon_{\pi_{k+1}}^{R}\doteq \max\limits_{s}\big|\mathbb{E}_{a\sim\pi_{k+1}}[A^{R}_{\pi_{k}}(s,a)]\big|\)</span>,
+and
+<span class="math notranslate nohighlight">\(\epsilon_{\pi_{k+1}}^{C}\doteq \max\limits_{s}\big|\mathbb{E}_{a\sim\pi_{k+1}}[A^{C}_{\pi_{k}}(s,a)]\big|\)</span>.
+If the current policy <span class="math notranslate nohighlight">\(\pi_k\)</span> satisfies the constraint, then
+under KL divergence projection, the lower bound on reward
+improvement, and upper bound on constraint violation for each policy
+update are</p>
+<div class="math notranslate nohighlight">
+\[J^{R}(\pi_{k+1})-J^{R}(\pi_{k})\geq-\frac{\sqrt{2\delta}\gamma\epsilon_{\pi_{k+1}}^{R}}{(1-\gamma)^{2}},
+%
+~\text{and}~J^{C}(\pi_{k+1})\leq d+\frac{\sqrt{2\delta}\gamma\epsilon_{\pi_{k+1}}^{C}}{(1-\gamma)^{2}},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta\)</span> is the step size in the reward improvement step.</p>
+</div>
+<p>If you’ve read the CPO tutorial, then you should be familiar with the
+above conclusions. In fact, a detailed proof of the above conclusions is
+provided in the CPO tutorial.</p>
+<div class="theorem docutils container">
+<p>Define
+<span class="math notranslate nohighlight">\(\epsilon_{\pi_{k+1}}^{R}\doteq \max\limits_{s}\big|\mathbb{E}_{a\sim\pi_{k+1}}[A^{R}_{\pi_{k}}(s,a)]\big|\)</span>,
+<span class="math notranslate nohighlight">\(\epsilon_{\pi_{k+1}}^{C}\doteq \max\limits_{s}\big|\mathbb{E}_{a\sim\pi_{k+1}}[A^{C}_{\pi_{k}}(s,a)]\big|\)</span>,
+<span class="math notranslate nohighlight">\(b^{+}\doteq \max(0,J^{C}(\pi_k)-d),\)</span> and
+<span class="math notranslate nohighlight">\(\alpha_{KL} \doteq \frac{1}{2a^T\boldsymbol{H}^{-1}a},\)</span> where
+<span class="math notranslate nohighlight">\(a\)</span> is the gradient of the cost advantage function and
+<span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is the Hessian of the KL divergence
+constraint. If the current policy <span class="math notranslate nohighlight">\(\pi_k\)</span> violates the
+constraint, then under KL divergence projection, the lower bound on
+reward improvement and the upper bound on constraint violation for
+each policy update are</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+J^{R}(\pi_{k+1})-J^{R}(\pi_{k})\geq&amp;-\frac{\sqrt{2(\delta+{b^+}^{2}\alpha_\mathrm{KL})}\gamma\epsilon_{\pi_{k+1}}^{R}}{(1-\gamma)^{2}}, \nonumber\\
+%
+~\text{and}~J^{C}(\pi_{k+1})\leq&amp; ~h+\frac{\sqrt{2(\delta+{b^+}^{2}\alpha_\mathrm{KL})}\gamma\epsilon_{\pi_{k+1}}^{C}}{(1-\gamma)^{2}},\nonumber
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta\)</span> is the step size in the reward improvement step.</p>
+</div>
+<p>The above theorem illustrates that when the policy has greater
+constraint violation (<span class="math notranslate nohighlight">\(b^+\)</span> increases), its worst-case performance
+degradation increases. Note that Theorem 5.2 reduces to Theorem 5.1 if
+the current policy <span class="math notranslate nohighlight">\(\pi_k\)</span> satisfies the constraint (<span class="math notranslate nohighlight">\(b^+\)</span> =
+0). In the appendix a detailed proof of Theorem 5.2 is provided.</p>
+</section>
+<section id="practical-implementation">
+<h2>Practical Implementation<a class="headerlink" href="#practical-implementation" title="Permalink to this heading"></a></h2>
+<p>For a large neural network policy with hundreds of thousands of
+parameters, directly solving for the PCPO update in
+<a class="reference external" href="#PCPO:Probelm1">1.3.1</a> and <a class="reference external" href="#PCPO:Problem2">1.3.2</a> is impractical
+due to the computational cost. PCPO proposes that with a small step size
+<span class="math notranslate nohighlight">\(\delta\)</span>, the reward function and constraints and the KL
+divergence constraint in the reward improvement step can be approximated
+with a first order expansion, while the KL divergence measure in the
+projection step can also be approximated with a second order expansion.</p>
+<section id="id7">
+<h3>Reward improvement step<a class="headerlink" href="#id7" title="Permalink to this heading"></a></h3>
+<p>Define:</p>
+<div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(g\doteq\nabla_\theta\underset{\substack{s\sim d^{\pi_k}a\sim \pi}}{\mathbb{E}}[A_{\pi_k}^{R}(s,a)]\)</span>
+is the gradient of the reward advantage function,</div>
+<div class="line"><span class="math notranslate nohighlight">\(a\doteq\nabla_\theta\underset{\substack{s\sim d^{\pi_k}a\sim \pi}}{\mathbb{E}}[A_{\pi_k}^{C}(s,a)]\)</span>
+is the gradient of the cost advantage function,</div>
+</div>
+<p>where
+<span class="math notranslate nohighlight">\(\boldsymbol{H}_{i,j}\doteq \frac{\partial^2 \underset{s\sim d^{\pi_{k}}}{\mathbb{E}}\big[KL(\pi ||\pi_{k})[s]\big]}{\partial \theta_j\partial \theta_j}\)</span>
+is the Hessian of the KL divergence constraint (<span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span>
+is also called the Fisher information matrix. It is symmetric positive
+semi-definite), <span class="math notranslate nohighlight">\(b\doteq J^{C}(\pi_k)-da\)</span> is the constraint
+violation of the policy <span class="math notranslate nohighlight">\(\pi_{k}\)</span>, and <span class="math notranslate nohighlight">\(\theta\)</span> is the
+parameter of the policy. PCPO linearizes the objective function at
+<span class="math notranslate nohighlight">\(\pi_k\)</span> subject to second order approximation of the KL divergence
+constraint in order to obtain the following updates:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \theta_{k+\frac{1}{2}} = \underset{\theta}{\arg max}&amp;\quad       g^{T}(\theta-\theta_k)  \nonumber\\
+    \text{s.t.}&amp;\quad\frac{1}{2}(\theta-\theta_{k})^{T}\boldsymbol{H}(\theta-\theta_k)\le \delta . \label{eq:update1}
+\end{aligned}\end{split}\]</div>
+<p>In fact, the above problem is essentially an optimization problem
+presented in TRPO, which can be completely solved using the method we
+introduced in the TRPO tutorial.</p>
+</section>
+<section id="id8">
+<h3>Projection step<a class="headerlink" href="#id8" title="Permalink to this heading"></a></h3>
+<p>PCPO provides a selection reference for distance measures: if the
+projection is defined in the parameter space, L2 norm projection is
+selected, while if the projection is defined in the probability space,
+KL divergence projection is better. This can be approximated through the
+second order expansion. Again, PCPO linearizes the cost constraint at
+<span class="math notranslate nohighlight">\(\pi_{k}.\)</span> This gives the following update for the projection
+step:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \theta_{k+1} = \underset{\theta}{\arg min}&amp;\quad \frac{1}{2}(\theta-{\theta}_{k+\frac{1}{2}})^{T}\boldsymbol{L}(\theta-{\theta}_{k+\frac{1}{2}}) \nonumber\\
+    \text{s.t.}&amp;\quad a^{T}(\theta-\theta_{k})+b\leq 0, \label{eq:update2}
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\boldsymbol{L}=\boldsymbol{I}\)</span> for L2 norm projection, and
+<span class="math notranslate nohighlight">\(\boldsymbol{L}=\boldsymbol{H}\)</span> for KL divergence projection. PCPO
+solves Problem (<a class="reference external" href="#eq:update1">[eq:update1]</a>) and
+Problem (<a class="reference external" href="#eq:update2">[eq:update2]</a>) using convex programming (See
+the appendix for the derivation). For each policy update:</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+\theta_{k+1}=\theta_{k}+&amp;\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}\boldsymbol{H}^{-1}g
+-\max\left(0,\frac{\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}a^{T}\boldsymbol{H}^{-1}g+b}{a^T\boldsymbol{L}^{-1}a}\right)\boldsymbol{L}^{-1}a.
+\label{eq:PCPO_final}
+\end{aligned}\]</div>
+<p><span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is assumed invertible and PCPO requires to invert
+<span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span>, which is impractical for huge neural network
+policies. Hence it use the conjugate gradient method . (See appendix for
+a discussion of the tradeoff between the approximation error and
+computational efficiency of the conjugate gradient method.)</p>
+<div class="tcolorbox docutils container">
+<div class="line-block">
+<div class="line"><strong>Question:</strong>Is using linear approximation to the constraint set
+enough to ensure constraint satisfaction since the real constraint
+set is maybe non-convex?</div>
+<div class="line"><strong>Answer:</strong>In fact, if the step size <span class="math notranslate nohighlight">\(\delta\)</span> is small,
+then the linearization of the constraint set is accurate enough to
+locally approximate it.</div>
+<div class="line"><br /></div>
+<div class="line"><strong>Question:</strong>Can PCPO solve the multi-constraint problem?</div>
+<div class="line"><strong>Answer:</strong>By sequentially projecting onto each of the sets, the
+update in Eq. (<a class="reference external" href="#eq:PCPO_final">[eq:PCPO_final]</a>) can be
+extended by using alternating projections.</div>
+</div>
+</div>
+</section>
+<section id="analysis">
+<h3>analysis<a class="headerlink" href="#analysis" title="Permalink to this heading"></a></h3>
+<p>The update rule in Eq. (<a class="reference external" href="#eq:PCPO_final">[eq:PCPO_final]</a>) shows that
+the difference between PCPO with KL divergence and L2 norm projections
+is the cost update direction, leading to a difference in reward
+improvement. These two projections converge to different stationary
+points with different convergence rates related to the smallest and
+largest singular values of the Fisher information matrix shown in
+Theorem <a class="reference external" href="#theorem:PCPO_converge">[theorem:PCPO_converge]</a>. PCPO
+assumes that: PCPO <em>minimizes</em> the negative reward objective function
+<span class="math notranslate nohighlight">\(f: R^n \rightarrow R\)</span> . The function <span class="math notranslate nohighlight">\(f\)</span> is
+<span class="math notranslate nohighlight">\(L\)</span>-smooth and twice continuously differentiable over the closed
+and convex constraint set <span class="math notranslate nohighlight">\(\mathcal{C}\)</span>.</p>
+<div class="theorem docutils container">
+<p>Let
+<span class="math notranslate nohighlight">\(\eta\doteq \sqrt{\frac{2\delta}{g^{T}\boldsymbol{H}^{-1}g}}\)</span>
+in Eq. (<a class="reference external" href="#eq:PCPO_final">[eq:PCPO_final]</a>), where <span class="math notranslate nohighlight">\(\delta\)</span>
+is the step size for reward improvement, <span class="math notranslate nohighlight">\(g\)</span> is the gradient of
+<span class="math notranslate nohighlight">\(f,\)</span> and <span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is the Fisher information
+matrix. Let <span class="math notranslate nohighlight">\(\sigma_\mathrm{max}(\boldsymbol{H})\)</span> be the
+largest singular value of <span class="math notranslate nohighlight">\(\boldsymbol{H},\)</span> and <span class="math notranslate nohighlight">\(a\)</span> be
+the gradient of cost advantage function in
+Eq. (<a class="reference external" href="#eq:PCPO_final">[eq:PCPO_final]</a>). Then PCPO with KL
+divergence projection converges to a stationary point either inside
+the constraint set or in the boundary of the constraint set. In the
+latter case, the Lagrangian constraint
+<span class="math notranslate nohighlight">\(g=-\alpha a, \alpha\geq0\)</span> holds. Moreover, at step <span class="math notranslate nohighlight">\(k+1\)</span>
+the objective value satisfies</p>
+<div class="math notranslate nohighlight">
+\[f(\theta_{k+1})\leq f(\theta_{k})+||\theta_{k+1}-\theta_{k}||^2_{-\frac{1}{\eta}\boldsymbol{H}+\frac{L}{2}\boldsymbol{I}}.\]</div>
+<p>PCPO with L2 norm projection converges to a stationary point either
+inside the constraint set or in the boundary of the constraint set.
+In the latter case, the Lagrangian constraint
+<span class="math notranslate nohighlight">\(\boldsymbol{H}^{-1}g=-\alpha a, \alpha\geq0\)</span> holds. If
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{max}(\boldsymbol{H})\leq1,\)</span> then a step
+<span class="math notranslate nohighlight">\(k+1\)</span> objective value satisfies</p>
+<div class="math notranslate nohighlight">
+\[f(\theta_{k+1})\leq f(\theta_{k})+(\frac{L}{2}-\frac{1}{\eta})||\theta_{k+1}-\theta_{k}||^2_2.\]</div>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> See the appendix. ◻</p>
+</div>
+<p>Theorem <a class="reference external" href="#theorem:PCPO_converge">[theorem:PCPO_converge]</a> shows that
+in the stationary point <span class="math notranslate nohighlight">\(g\)</span> is a line that points to the opposite
+direction of <span class="math notranslate nohighlight">\(a.\)</span> Further, the improvement of the objective value
+is affected by the singular value of the Fisher information matrix.
+Specifically, the objective of KL divergence projection decreases when
+<span class="math notranslate nohighlight">\(\frac{L\eta}{2}\boldsymbol{I}\prec\boldsymbol{H},\)</span> implying that
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{min}(\boldsymbol{H})&gt; \frac{L\eta}{2}.\)</span> And the
+objective of <span class="math notranslate nohighlight">\(L2\)</span> norm projection decreases when
+<span class="math notranslate nohighlight">\(\eta&lt;\frac{2}{L},\)</span> implying that condition number of
+<span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is upper bounded:
+<span class="math notranslate nohighlight">\(\frac{\sigma_\mathrm{max}(\boldsymbol{H})}{\sigma_\mathrm{min}(\boldsymbol{H})}&lt;\frac{2||g||^2_2}{L^2\delta}.\)</span>
+Observing the singular values of the Fisher information matrix allows us
+to adaptively choose the appropriate projection and hence achieve
+objective improvement. In the supplemental material, we further use an
+example to compare the optimization trajectories and stationary points
+of KL divergence and L2 norm projections.</p>
+</section>
+</section>
+<section id="appendix">
+<h2>Appendix<a class="headerlink" href="#appendix" title="Permalink to this heading"></a></h2>
+<section id="proof-of-theorem-theorem-feasiblecase-performance-bound-on-updating-the-constraint-satisfying-policy">
+<span id="appendix-proof-theorem-1"></span><h3>Proof of Theorem <a class="reference external" href="#theorem:feasibleCase">[theorem:feasibleCase]</a>: Performance Bound on Updating the Constraint-satisfying Policy<a class="headerlink" href="#proof-of-theorem-theorem-feasiblecase-performance-bound-on-updating-the-constraint-satisfying-policy" title="Permalink to this heading"></a></h3>
+<p>In fact, we give a complete proof about Theorem
+<a class="reference external" href="#theorem:feasibleCase">[theorem:feasibleCase]</a> in appendix
+<a class="reference external" href="#CPO:Performancebound">[CPO:Performance bound]</a> of the CPO tutorial
+. If you haven’t read it or forgotten it, please refer to it carefully
+before reading the rest of the appendix</p>
+</section>
+<section id="proof-of-theorem-theorem-infeasiblecase-performance-bound-on-updating-the-constraint-violating-policy">
+<span id="appendix-proof-theorem-2"></span><h3>Proof of Theorem <a class="reference external" href="#theorem:infeasibleCase">[theorem:infeasibleCase]</a>: Performance Bound on Updating the Constraint-violating Policy<a class="headerlink" href="#proof-of-theorem-theorem-infeasiblecase-performance-bound-on-updating-the-constraint-violating-policy" title="Permalink to this heading"></a></h3>
+<p>To prove the policy performance bound when the current policy is
+infeasible ( constraint-violating), we prove the KL divergence between
+<span class="math notranslate nohighlight">\(\pi_{k}\)</span> and <span class="math notranslate nohighlight">\(\pi^{k+1}\)</span> for the KL divergence projection.
+We then prove the main theorem for the worst-case performance
+degradation.</p>
+<div class="lemma docutils container">
+<p>If the current policy <span class="math notranslate nohighlight">\(\pi_{k}\)</span> satisfies the constraint, the
+constraint set is closed and convex, the KL divergence constraint for
+the first step is
+<span class="math notranslate nohighlight">\(\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi^{k+\frac{1}{2}} ||\pi_{k})[s]\big]\leq \delta,\)</span>
+where <span class="math notranslate nohighlight">\(\delta\)</span> is the step size in the reward improvement step,
+then under KL divergence projection, we have</p>
+<div class="math notranslate nohighlight">
+\[\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi^{k+1} ||\pi_{k})[s]\big]\leq \delta.\]</div>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> By the Bregman divergence projection inequality,
+<span class="math notranslate nohighlight">\(\pi_{k}\)</span> being in the constraint set, and <span class="math notranslate nohighlight">\(\pi^{k+1}\)</span>
+being the projection of the <span class="math notranslate nohighlight">\(\pi^{k+\frac{1}{2}}\)</span> onto the
+constraint set, we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k} ||\pi_{k+\frac{1}{2}})[s]\big]\geq
+%
+\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k}||\pi_{k+1})[s]\big] \\
+&amp;+
+%
+\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k+1} ||\pi_{k+\frac{1}{2}})[s]\big]\\
+%
+&amp;\Rightarrow\delta\geq
+%
+\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k} ||\pi_{k+\frac{1}{2}})[s]\big]\geq
+%
+\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k}||\pi_{k+1})[s]\big].
+\end{aligned}\end{split}\]</div>
+<p>The derivation uses the fact that KL divergence is always greater
+than zero. We know that KL divergence is asymptotically symmetric
+when updating the policy within a local neighbourhood. Thus, we have</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}  \delta\geq
+  %
+  \mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k+\frac{1}{2}} ||\pi_{k})[s]\big]\geq
+  %
+  \mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k+1}||\pi_{k})[s]\big].\\◻\end{aligned}\end{align} \]</div>
+</div>
+<div class="lemma docutils container">
+<p>If the current policy <span class="math notranslate nohighlight">\(\pi_{k}\)</span> violates the constraint, the
+constraint set is closed and convex, the KL divergence constraint for
+the first step is
+<span class="math notranslate nohighlight">\(\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k+\frac{1}{2}} ||\pi_{k})[s]\big]\leq \delta,\)</span>
+where <span class="math notranslate nohighlight">\(\delta\)</span> is the step size in the reward improvement step,
+then under the KL divergence projection, we have</p>
+<div class="math notranslate nohighlight">
+\[\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k+1} ||\pi_{k})[s]\big]\leq \delta+{b^+}^2\alpha_\mathrm{KL},\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(\alpha_\mathrm{KL} \doteq \frac{1}{2a^T\boldsymbol{H}^{-1}a},\)</span>
+<span class="math notranslate nohighlight">\(a\)</span> is the gradient of the cost advantage function,</p>
+<p><span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is the Hessian of the KL divergence
+constraint, and <span class="math notranslate nohighlight">\(b^+\doteq\max(0,J^{C}(\pi_k)-h).\)</span></p>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> We define the sublevel set of cost constraint function for
+the current infeasible policy <span class="math notranslate nohighlight">\(\pi_k\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}L^{\pi_k}=\{\pi~|~J^{C}(\pi_{k})+ \mathbb{E}_{\substack{s\sim d^{\pi_{k}}\\ a\sim \pi}}[A_{\pi_k}^{C}(s,a)]\leq J^{C}(\pi_{k})\}.\end{split}\]</div>
+<p>This implies that the current policy <span class="math notranslate nohighlight">\(\pi_k\)</span> lies in
+<span class="math notranslate nohighlight">\(L^{\pi_k}\)</span>, and <span class="math notranslate nohighlight">\(\pi^{k+\frac{1}{2}}\)</span> is projected onto
+the constraint set:
+<span class="math notranslate nohighlight">\(\{\pi~|~J^{C}(\pi_{k})+ \mathbb{E}_{\substack{s\sim d^{\pi_{k}}\\ a\sim \pi}}[A_{\pi_k}^{C}(s,a)]\leq h\}.\)</span>
+Next, we define the policy <span class="math notranslate nohighlight">\(\pi_{k+1}^l\)</span> as the projection of
+<span class="math notranslate nohighlight">\(\pi_{k+\frac{1}{2}}\)</span> onto <span class="math notranslate nohighlight">\(L^{\pi_k}.\)</span></p>
+<p>By the Three-point Lemma, for these three polices
+<span class="math notranslate nohighlight">\(\pi_k, \pi_{k+1},\)</span> and <span class="math notranslate nohighlight">\(\pi^{k+1}_l\)</span>, with
+<span class="math notranslate nohighlight">\(\varphi(x)\doteq\sum_i x_i\log x_i\)</span>, we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\delta \geq  \mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k+1}^l ||\pi_{k})[s]\big]&amp;=\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi_{k+1} ||\pi_{k})[s]\big] \nonumber\\
+&amp;-\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL} (\pi_{k+1} ||\pi_{k+1}^l)[s]\big] \nonumber \\
+&amp;+\mathbb{E}_{s\sim d^{\pi_{k}}}\big[(\nabla\varphi(\pi_k)-\nabla\varphi(\pi_{k+1}^{l}))^T(\pi_{k+1}-\pi_{k+1}^l)[s]\big] \nonumber \\
+\Rightarrow \mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL} (\pi_{k+1} ||\pi_{k})[s]\big]&amp;\leq \delta + \mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL} (\pi_{k+1} ||\pi_{k+1}^l)[s]\big] \nonumber \\
+&amp;- \mathbb{E}_{s\sim d^{\pi_{k}}}\big[(\nabla\varphi(\pi_k)-\nabla\varphi(\pi_{k+1}^{l}))^T(\pi^{k+1}-\pi^{k+1}_l)[s]\big]. \label{eq:infeasible_firstPart}
+\end{aligned}\end{split}\]</div>
+<p>The inequality
+<span class="math notranslate nohighlight">\(\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL} (\pi^{k+1}_l ||\pi_{k})[s]\big]\leq\delta\)</span>
+comes from that <span class="math notranslate nohighlight">\(\pi_{k}\)</span> and <span class="math notranslate nohighlight">\(\pi^{k+1}_l\)</span> are in
+<span class="math notranslate nohighlight">\(L^{\pi_k}\)</span>, and Lemma <a class="reference external" href="#lemma:feasible">[lemma:feasible]</a>.</p>
+<p>If the constraint violation of the current policy <span class="math notranslate nohighlight">\(\pi_k\)</span> is
+small, <span class="math notranslate nohighlight">\(b^+\)</span> is small,
+<span class="math notranslate nohighlight">\(\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL} (\pi^{k+1} ||\pi^{k+1}_l)[s]\big]\)</span>
+can be approximated by the second order expansion. By the update rule
+in Eq. (<a class="reference external" href="#eq:PCPO_final">[eq:PCPO_final]</a>), we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi^{k+1} ||\pi^{k+1}_l)[s]\big] &amp;\approx \frac{1}{2}(\theta_{k+1}-\theta_{k+1}^l)^{T}\boldsymbol{H}(\theta_{k+1}-\theta_{k+1}^l)\nonumber\\
+&amp;=\frac{1}{2} \Big(\frac{b^+}{a^T\boldsymbol{H}^{-1}a}\boldsymbol{H}^{-1}a\Big)^T\boldsymbol{H}\Big(\frac{b^+}{a^T\boldsymbol{H}^{-1}a}\boldsymbol{H}^{-1}a\Big)\nonumber\\
+&amp;=\frac{{b^+}^2}{2a^T\boldsymbol{H}^{-1}a}\nonumber\\
+&amp;={b^+}^2\alpha_\mathrm{KL}, \label{eq:infeasible_secondPart}
+\end{aligned}\end{split}\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(\alpha_\mathrm{KL} \doteq \frac{1}{2a^T\boldsymbol{H}^{-1}a}.\)</span></p>
+<p>And since <span class="math notranslate nohighlight">\(\delta\)</span> is small, we have
+<span class="math notranslate nohighlight">\(\nabla\varphi(\pi_k)-\nabla\varphi(\pi_{k+1}^{l})\approx \mathbf{0}\)</span>
+given <span class="math notranslate nohighlight">\(s\)</span>. Thus, the third term in
+Eq. (<a class="reference external" href="#eq:infeasible_firstPart">[eq:infeasible_firstPart]</a>) can be
+eliminated.</p>
+<p>Combining
+Eq. (<a class="reference external" href="#eq:infeasible_firstPart">[eq:infeasible_firstPart]</a>) and
+Eq. (<a class="reference external" href="#eq:infeasible_secondPart">[eq:infeasible_secondPart]</a>), we
+have <span class="math notranslate nohighlight">\([
+\mathbb{E}_{s\sim d^{\pi_{k}}}\big[\mathrm{KL}(\pi^{k+1}||\pi_{k})[s]\big]\leq \delta+{b^+}^2\alpha_\mathrm{KL}.]\)</span> ◻</p>
+</div>
+<p>Now we use Lemma <a class="reference external" href="#lemma:infeasible">[lemma:infeasible]</a> to prove the
+main theorem.</p>
+<div class="theorem docutils container">
+<p>Define
+<span class="math notranslate nohighlight">\(\epsilon_{\pi_{k+1}}^{R}\doteq \max\limits_{s}\big|\mathbb{E}_{a\sim\pi^{k+1}}[A_{R}^{\pi_{k}}(s,a)]\big|\)</span>,
+<span class="math notranslate nohighlight">\(\epsilon_{\pi_{k+1}}^{C}\doteq \max\limits_{s}\big|\mathbb{E}_{a\sim\pi^{k+1}}[A_{C}^{\pi_{k}}(s,a)]\big|\)</span>,
+<span class="math notranslate nohighlight">\(b^{+}\doteq \max(0,J^{C}(\pi_k)-h),\)</span> and
+<span class="math notranslate nohighlight">\(\alpha_\mathrm{KL} \doteq \frac{1}{2a^T\boldsymbol{H}^{-1}a},\)</span>
+where <span class="math notranslate nohighlight">\(a\)</span> is the gradient of the cost advantage function and
+<span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is the Hessian of the KL divergence
+constraint. If the current policy <span class="math notranslate nohighlight">\(\pi_k\)</span> violates the
+constraint, then under the KL divergence projection, the lower bound
+on reward improvement and the upper bound on constraint violation for
+each policy update are</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+J^{R}(\pi_{k+1})-J^{R}(\pi_{k})\geq&amp;-\frac{\sqrt{2(\delta+{b^+}^{2}\alpha_\mathrm{KL})}\gamma\epsilon_{\pi_{k+1}}^{R}}{(1-\gamma)^{2}}, \nonumber\\
+%
+~\text{and}~J^{C}(\pi^{k+1})\leq&amp;~h+\frac{\sqrt{2(\delta+{b^+}^{2}\alpha_\mathrm{KL})}\gamma\epsilon_{\pi_{k+1}}^{C}}{(1-\gamma)^{2}},\nonumber
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta\)</span> is the step size in the reward improvement step.</p>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> Following the same proof in Theorem
+<a class="reference external" href="#theorem:feasibleCase">[theorem:feasibleCase]</a>, we complete the
+proof. ◻</p>
+</div>
+<p>Note that the bounds we obtain for the infeasibe case.</p>
+</section>
+<section id="proof-of-analytical-solution-to-pcpo">
+<span id="appendix-proof-update-rule-1"></span><h3>Proof of Analytical Solution to PCPO<a class="headerlink" href="#proof-of-analytical-solution-to-pcpo" title="Permalink to this heading"></a></h3>
+<div class="theorem docutils container">
+<p>Consider the PCPO problem. In the first step, we optimize the reward:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \theta_{k+\frac{1}{2}} = \underset{\theta}{\arg\,min}&amp;\quad g^{T}(\theta-\theta_{k}) \\
+    \text{s.t.}&amp;\quad\frac{1}{2}(\theta-\theta_{k})^{T}\boldsymbol{H}(\theta-\theta_{k})\leq \delta,
+\end{aligned}\end{split}\]</div>
+<p>and in the second step, we project the policy onto the constraint
+set:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \theta_{k+1} = \underset{\theta}{\arg\,min}\quad \frac{1}{2}(\theta-{\theta}_{k+\frac{1}{2}})^{T}\boldsymbol{L}(\theta-{\theta}_{k+\frac{1}{2}}) \\
+    \text{s.t.}&amp;\quad a^{T}(\theta-\theta_{k})+b\leq 0,
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(g, a, \theta \in R^n, b, \delta\in R, \delta&gt;0,\)</span> and
+<span class="math notranslate nohighlight">\(\boldsymbol{H},\boldsymbol{L}\in R^{n\times n}, \boldsymbol{L}=\boldsymbol{H}\)</span>
+if using the KL divergence projection, and
+<span class="math notranslate nohighlight">\(\boldsymbol{L}=\boldsymbol{I}\)</span> if using the L2 norm
+projection. When there is at least one strictly feasible point, the
+optimal solution satisfies</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\theta_{k+1}=\theta_{k}+\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}\boldsymbol{H}^{-1}g\nonumber\\
+-\max(0,\frac{\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}a^{T}\boldsymbol{H}^{-1}g+b}{a^T\boldsymbol{L}^{-1}a})\boldsymbol{L}^{-1}a,\end{split}\]</div>
+<p>assuming that <span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is invertible to get a unique
+solution.</p>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> For the first problem, since <span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is the
+Fisher Information matrix, which automatically guarantees it is
+positive semi-definite. Hence it is a convex program with quadratic
+inequality constraints. Hence if the primal problem has a feasible
+point, then Slater’s condition is satisfied and strong duality holds.
+Let <span class="math notranslate nohighlight">\(\theta^{*}\)</span> and <span class="math notranslate nohighlight">\(\lambda^*\)</span> denote the solutions to
+the primal and dual problems, respectively. In addition, the primal
+objective function is continuously differentiable. Hence the
+Karush-Kuhn-Tucker (KKT) conditions are necessary and sufficient for
+the optimality of <span class="math notranslate nohighlight">\(\theta^{*}\)</span> and <span class="math notranslate nohighlight">\(\lambda^*.\)</span> We now
+form the Lagrangian:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}(\theta,\lambda)=-g^{T}(\theta-\theta_{k})+\lambda\Big(\frac{1}{2}(\theta-\theta_{k})^{T}\boldsymbol{H}(\theta-\theta_{k})- \delta\Big).\]</div>
+<p>And we have the following KKT conditions:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+   -g + \lambda^*\boldsymbol{H}\theta^{*}-\lambda^*\boldsymbol{H}\theta_{k}=0~~~~&amp;~~~\nabla_\theta\mathcal{L}(\theta^{*},\lambda^{*})=0 \label{KKT_1}\\
+   \frac{1}{2}(\theta^{*}-\theta_{k})^{T}\boldsymbol{H}(\theta^{*}-\theta_{k})- \delta=0~~~~&amp;~~~\nabla_\lambda\mathcal{L}(\theta^{*},\lambda^{*})=0 \label{KKT_2}\\
+    \frac{1}{2}(\theta^{*}-\theta_{k})^{T}\boldsymbol{H}(\theta^{*}-\theta_{k})-\delta\leq0~~~~&amp;~~~\text{primal constraints}\label{KKT_3}\\
+   \lambda^*\geq0~~~~&amp;~~~\text{dual constraints}\label{KKT_4}\\
+   \lambda^*\Big(\frac{1}{2}(\theta^{*}-\theta_{k})^{T}\boldsymbol{H}(\theta^{*}-\theta_{k})-\delta\Big)=0~~~~&amp;~~~\text{complementary slackness}\label{KKT_5}
+\end{aligned}\end{split}\]</div>
+<p>By Eq. (<a class="reference external" href="#KKT_1">[KKT_1]</a>), we have
+<span class="math notranslate nohighlight">\(\theta^{*}=\theta_{k}+\frac{1}{\lambda^*}\boldsymbol{H}^{-1}g.\)</span>
+And by plugging Eq. (<a class="reference external" href="#KKT_1">[KKT_1]</a>) into
+Eq. (<a class="reference external" href="#KKT_2">[KKT_2]</a>), we have
+<span class="math notranslate nohighlight">\(\lambda^*=\sqrt{\frac{g^T\boldsymbol{H}^{-1}g}{2\delta}}.\)</span>
+Hence we have our optimal solution:</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+\theta_{k+\frac{1}{2}}=\theta^{*}=\theta_{k}+\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}\boldsymbol{H}^{-1}g, \label{KKT_First}
+\end{aligned}\]</div>
+<p>which also satisfies Eq. (<a class="reference external" href="#KKT_3">[KKT_3]</a>),
+Eq. (<a class="reference external" href="#KKT_4">[KKT_4]</a>), and Eq. (<a class="reference external" href="#KKT_5">[KKT_5]</a>).</p>
+<p>Following the same reasoning, we now form the Lagrangian of the
+second problem:</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+\mathcal{L}(\theta,\lambda)=\frac{1}{2}(\theta-{\theta}_{k+\frac{1}{2}})^{T}\boldsymbol{L}(\theta-{\theta}_{k+\frac{1}{2}})+\lambda(a^T(\theta-\theta_{k})+b). \nonumber
+\end{aligned}\]</div>
+<p>And we have the following KKT conditions:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+  \boldsymbol{L}\theta^*-\boldsymbol{L}\theta_{k+\frac{1}{2}}+\lambda^*a=0~~~~&amp;~~~\nabla_\theta\mathcal{L}(\theta^{*},\lambda^{*})=0 \label{KKT_6}\\
+   a^T(\theta^*-\theta_{k})+b=0~~~~&amp;~~~\nabla_\lambda\mathcal{L}(\theta^{*},\lambda^{*})=0 \label{KKT_7}\\
+    a^T(\theta^*-\theta_{k})+b\leq0~~~~&amp;~~~\text{primal constraints}\label{KKT_8}\\
+   \lambda^*\geq0~~~~&amp;~~~\text{dual constraints}\label{KKT_9}\\
+   \lambda^*(a^T(\theta^*-\theta_{k})+b)=0~~~~&amp;~~~\text{complementary slackness}\label{KKT_10}
+\end{aligned}\end{split}\]</div>
+<p>By Eq. (<a class="reference external" href="#KKT_6">[KKT_6]</a>), we have
+<span class="math notranslate nohighlight">\(\theta^{*}=\theta_{k+1}+\lambda^*\boldsymbol{L}^{-1}a.\)</span> And by
+plugging Eq. (<a class="reference external" href="#KKT_6">[KKT_6]</a>) into Eq. (<a class="reference external" href="#KKT_7">[KKT_7]</a>)
+and Eq. (<a class="reference external" href="#KKT_9">[KKT_9]</a>), we have
+<span class="math notranslate nohighlight">\(\lambda^*=\max(0,\\ \frac{a^T(\theta_{k+\frac{1}{2}}-\theta_{k})+b}{a\boldsymbol{L}^{-1}a}).\)</span>
+Hence we have our optimal solution:</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+\theta_{k+1}=\theta^{*}=\theta_{k+\frac{1}{2}}-\max(0,\frac{a^T(\theta_{k+\frac{1}{2}}-\theta_{k})+b}{a^T\boldsymbol{L}^{-1}a^T})\boldsymbol{L}^{-1}a,\label{KKT_Second}
+\end{aligned}\]</div>
+<p>which also satisfies Eq. (<a class="reference external" href="#KKT_8">[KKT_8]</a>) and
+Eq. (<a class="reference external" href="#KKT_10">[KKT_10]</a>). Hence by
+Eq. (<a class="reference external" href="#KKT_First">[KKT_First]</a>) and
+Eq. (<a class="reference external" href="#KKT_Second">[KKT_Second]</a>), we have</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}  \theta_{k+1}=\theta_{k}+\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}\boldsymbol{H}^{-1}g\nonumber\\
+  -\max(0,\frac{\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}a^{T}\boldsymbol{H}^{-1}g+b}{a^T\boldsymbol{L}^{-1}a})\boldsymbol{L}^{-1}a.\end{split}\\◻\end{aligned}\end{align} \]</div>
+</div>
+</section>
+<section id="proof-of-theorem-theorem-pcpo-converge-stationary-points-of-pcpo-with-the-kl-divergence-and-l2-norm-projections">
+<span id="appendix-proof-theorem-3"></span><h3>Proof of Theorem <a class="reference external" href="#theorem:PCPO_converge">[theorem:PCPO_converge]</a>: Stationary Points of PCPO with the KL divergence and L2 Norm Projections<a class="headerlink" href="#proof-of-theorem-theorem-pcpo-converge-stationary-points-of-pcpo-with-the-kl-divergence-and-l2-norm-projections" title="Permalink to this heading"></a></h3>
+<p>For our analysis, we make the following assumptions: we <em>minimize</em> the
+negative reward objective function <span class="math notranslate nohighlight">\(f: R^n \rightarrow R\)</span> (We
+follow the convention of the literature that authors typically minimize
+the objective function). The function <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(L\)</span>-smooth and
+twice continuously differentiable over the closed and convex constraint
+set <span class="math notranslate nohighlight">\(\mathcal{C}.\)</span> We have the following lemma to characterize the
+projection and for the proof of Theorem
+<a class="reference external" href="#theorem:PCPO_converge_appendix">[theorem:PCPO_converge_appendix]</a>.</p>
+<div class="lemma docutils container">
+<p>For any <span class="math notranslate nohighlight">\(\theta,\)</span>
+<span class="math notranslate nohighlight">\(\theta^{*}=\mathrm{Proj}^{\boldsymbol{L}}_{\mathcal{C}}(\theta)\)</span>
+if and only if
+<span class="math notranslate nohighlight">\((\theta-\theta^*)^T\boldsymbol{L}(\theta'-\theta^*)\leq0, \forall\theta'\in\mathcal{C},\)</span>
+where
+<span class="math notranslate nohighlight">\(\mathrm{Proj}^{\boldsymbol{L}}_{\mathcal{C}}(\theta)\doteq \underset{\theta' \in \mathrm{C}}{\arg\,min}||\theta-\theta'||^2_{\boldsymbol{L}}\)</span>
+and <span class="math notranslate nohighlight">\(\boldsymbol{L}=\boldsymbol{H}\)</span> if using the KL divergence
+projection, and <span class="math notranslate nohighlight">\(\boldsymbol{L}=\boldsymbol{I}\)</span> if using the L2
+norm projection.</p>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> <span class="math notranslate nohighlight">\((\Rightarrow)\)</span> Let
+<span class="math notranslate nohighlight">\(\theta^{*}=\mathrm{Proj}^{\boldsymbol{L}}_{\mathcal{C}}(\theta)\)</span>
+for a given <span class="math notranslate nohighlight">\(\theta \not\in\mathcal{C},\)</span>
+<span class="math notranslate nohighlight">\(\theta'\in\mathcal{C}\)</span> be such that
+<span class="math notranslate nohighlight">\(\theta'\neq\theta^*,\)</span> and <span class="math notranslate nohighlight">\(\alpha\in(0,1).\)</span> Then we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{split}\label{eq:appendix_lemmaD1_0}
+\left\|\theta-\theta^*\right\|_L^2
+&amp;\leq\left\|\theta-\left(\theta^*+\alpha\left(\theta^{\prime}-\theta^*\right)\right)\right\|_L^2 \\
+&amp;=\left\|\theta-\theta^*\right\|_L^2+\alpha^2\left\|\theta^{\prime}-\theta^*\right\|_{\boldsymbol{L}}^2\\
+&amp;~~~~ -2\alpha\left(\theta-\theta^*\right)^T \boldsymbol{L}\left(\theta^{\prime}-\theta^*\right) \\
+&amp; \Rightarrow\left(\theta-\theta^*\right)^T \boldsymbol{L}\left(\theta^{\prime}-\theta^*\right) \leq \frac{\alpha}{2}\left\|\theta^{\prime}-\theta^*\right\|_{\boldsymbol{L}}^2
+\end{split}\end{split}\]</div>
+<p>Since the right hand side of Eq.
+(<a class="reference external" href="#eq:appendix_lemmaD1_0">[eq:appendix_lemmaD1_0]</a>) can be made
+arbitrarily small for a given <span class="math notranslate nohighlight">\(\alpha\)</span>, and hence we have:</p>
+<div class="math notranslate nohighlight">
+\[(\theta-\theta^*)^T\boldsymbol{L}(\theta'-\theta^*)\leq0, \forall\theta'\in\mathcal{C}.\]</div>
+<p>Let <span class="math notranslate nohighlight">\(\theta^*\in\mathcal{C}\)</span> be such that
+<span class="math notranslate nohighlight">\((\theta-\theta^*)^T\boldsymbol{L}(\theta'-\theta^*)\leq0, \forall\theta'\in\mathcal{C}.\)</span>
+We show that <span class="math notranslate nohighlight">\(\theta^*\)</span> must be the optimal solution. Let
+<span class="math notranslate nohighlight">\(\theta'\in\mathcal{C}\)</span> and <span class="math notranslate nohighlight">\(\theta'\neq\theta^*.\)</span> Then
+we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{split}
+&amp;\left\|\theta-\theta^{\prime}\right\|_L^2-\left\|\theta-\theta^*\right\|_L^2\\ &amp;=\left\|\theta-\theta^*+\theta^*-\theta^{\prime}\right\|_L^2-\left\|\theta-\theta^*\right\|_L^2 \\
+&amp;=\left\|\theta-\theta^*\right\|_L^2+\left\|\theta^{\prime}-\theta^*\right\|_L^2-2\left(\theta-\theta^*\right)^T \boldsymbol{L}\left(\theta^{\prime}-\theta^*\right)\\
+&amp;~~~~-\left\|\theta-\theta^*\right\|_{\boldsymbol{L}}^2 \\
+&amp;&gt;0 \\
+&amp;\Rightarrow\left\|\theta-\theta^{\prime}\right\|_L^2 &gt;\left\|\theta-\theta^*\right\|_L^2 .
+\end{split}\end{split}\]</div>
+<p>Hence, <span class="math notranslate nohighlight">\(\theta^*\)</span> is the optimal solution to the optimization
+problem, and
+<span class="math notranslate nohighlight">\(\theta^*=\mathrm{Proj}^{\boldsymbol{L}}_{\mathcal{C}}(\theta).\)</span> ◻</p>
+</div>
+<p>Based on Lemma
+<a class="reference external" href="#lemma:projecion_appendix">[lemma:projecion_appendix]</a>, we have the
+following theorem.</p>
+<div class="theorem docutils container">
+<p>Let <span class="math notranslate nohighlight">\(\eta\doteq \sqrt{\frac{2\delta}{g^{T}\boldsymbol{H}^{-1}g}}\)</span> in
+Eq. (<a class="reference external" href="#eq:PCPO_final">[eq:PCPO_final]</a>), where <span class="math notranslate nohighlight">\(\delta\)</span> is
+the step size for reward improvement, <span class="math notranslate nohighlight">\(g\)</span> is the gradient of
+<span class="math notranslate nohighlight">\(f,\)</span> <span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> is the Fisher information matrix. Let
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{max}(\boldsymbol{H})\)</span> be the largest singular value of
+<span class="math notranslate nohighlight">\(\boldsymbol{H},\)</span> and <span class="math notranslate nohighlight">\(a\)</span> be the gradient of cost advantage
+function in Eq. (<a class="reference external" href="#eq:PCPO_final">[eq:PCPO_final]</a>). Then PCPO
+with the KL divergence projection converges to stationary points with
+<span class="math notranslate nohighlight">\(g\in-a\)</span> (i.e., the gradient of <span class="math notranslate nohighlight">\(f\)</span> belongs to the
+negative gradient of the cost advantage function). The objective
+value changes by</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+f(\theta_{k+1})\leq f(\theta_{k})+||\theta_{k+1}-\theta_{k}||^2_{-\frac{1}{\eta}\boldsymbol{H}+\frac{L}{2}\boldsymbol{I}}.\label{eq:bound1}
+\end{aligned}\]</div>
+<p>PCPO with the L2 norm projection converges to stationary points with
+<span class="math notranslate nohighlight">\(\boldsymbol{H}^{-1}g\in-a\)</span> (i.e., the product of the inverse
+of <span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> and gradient of <span class="math notranslate nohighlight">\(f\)</span> belongs to the
+negative gradient of the cost advantage function). If
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{max}(\boldsymbol{H})\leq1,\)</span> then the objective
+value changes by</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+f(\theta_{k+1})\leq f(\theta_{k})+(\frac{L}{2}-\frac{1}{\eta})||\theta_{k+1}-\theta_{k}||^2_2.\label{eq:bound2}
+\end{aligned}\]</div>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> The proof of the theorem is based on working in a Hilbert
+space and the non-expansive property of the projection. We first
+prove stationary points for PCPO with the KL divergence and L2 norm
+projections, and then prove the change of the objective value.</p>
+<p>When in stationary points <span class="math notranslate nohighlight">\(\theta^*\)</span>, we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\theta^{*}\\
+&amp;=\theta^{*}-\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}\boldsymbol{H}^{-1}g
+-\max\left(0,\frac{\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}a^{T}\boldsymbol{H}^{-1}g+b}{a^T\boldsymbol{L}^{-1}a}\right)\boldsymbol{L}^{-1}a. \nonumber\\
+\Leftrightarrow &amp;\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}\boldsymbol{H}^{-1}g  = -\max(0,\frac{\sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}a^{T}\boldsymbol{H}^{-1}g+b}{a^T\boldsymbol{L}^{-1}a})\boldsymbol{L}^{-1}a \nonumber\\
+\Leftrightarrow &amp; \boldsymbol{H}^{-1}g \in -\boldsymbol{L}^{-1}a.
+\label{eq:appendixStationary}
+\end{aligned}\end{split}\]</div>
+<p>For the KL divergence projection (<span class="math notranslate nohighlight">\(\boldsymbol{L}=\boldsymbol{H}\)</span>),
+Eq. (<a class="reference external" href="#eq:appendixStationary">[eq:appendixStationary]</a>) boils down
+to <span class="math notranslate nohighlight">\(g\in-a,\)</span> and for the L2 norm projection
+(<span class="math notranslate nohighlight">\(\boldsymbol{L}=\boldsymbol{I}\)</span>),
+Eq. (<a class="reference external" href="#eq:appendixStationary">[eq:appendixStationary]</a>) is
+equivalent to <span class="math notranslate nohighlight">\(\boldsymbol{H}^{-1}g\in-a.\)</span></p>
+<p>Now we prove the second part of the theorem. Based on Lemma
+<a class="reference external" href="#lemma:projecion_appendix">[lemma:projecion_appendix]</a>, for the
+KL divergence projection, we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{gathered}
+\label{eq:appendix_converge_0}
+\left(\theta_k-\theta_{k+1}\right)^T \boldsymbol{H}\left(\theta_k-\eta \boldsymbol{H}^{-1} \boldsymbol{g}-\theta_{k+1}\right) \leq 0 \\
+\Rightarrow \boldsymbol{g}^T\left(\theta_{k+1}-\theta_k\right) \leq-\frac{1}{\eta}\left\|\theta_{k+1}-\theta_k\right\|_{\boldsymbol{H}}^2
+\end{gathered}\end{split}\]</div>
+<p>By Eq. (<a class="reference external" href="#eq:appendix_converge_0">[eq:appendix_converge_0]</a>), and
+<span class="math notranslate nohighlight">\(L\)</span>-smooth continuous function <span class="math notranslate nohighlight">\(f,\)</span> we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+f\left(\theta_{k+1}\right) &amp; \leq f\left(\theta_k\right)+\boldsymbol{g}^T\left(\theta_{k+1}-\theta_k\right)+\frac{L}{2}\left\|\theta_{k+1}-\theta_k\right\|_2^2 \\
+&amp; \leq f\left(\theta_k\right)-\frac{1}{\eta}\left\|\theta_{k+1}-\theta_k\right\|_{\boldsymbol{H}}^2+\frac{L}{2}\left\|\theta_{k+1}-\theta_k\right\|_2^2 \\
+&amp;=f\left(\theta_k\right)+\left(\theta_{k+1}-\theta_k\right)^T\left(-\frac{1}{\eta} \boldsymbol{H}+\frac{L}{2} \boldsymbol{I}\right)\left(\theta_{k+1}-\theta_k\right) \\
+&amp;=f\left(\theta_k\right)+\left\|\theta_{k+1}-\theta_k\right\|_{-\frac{1}{\eta} \boldsymbol{H}+\frac{L}{2} \boldsymbol{I}}^2
+\end{aligned}\end{split}\]</div>
+<p>For the L2 norm projection, we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\label{eq:appendix_converge_1}
+   (\theta_{k}-\theta_{k+1})^T(\theta_{k}-\eta\boldsymbol{H}^{-1}g-\theta_{k+1})\leq0\nonumber\\
+   \Rightarrow g^T\boldsymbol{H}^{-1}(\theta_{k+1}-\theta_{k})\leq -\frac{1}{\eta}||\theta_{k+1}-\theta_{k}||^2_2.
+\end{aligned}\end{split}\]</div>
+<p>By Eq. (<a class="reference external" href="#eq:appendix_converge_1">[eq:appendix_converge_1]</a>),
+<span class="math notranslate nohighlight">\(L\)</span>-smooth continuous function <span class="math notranslate nohighlight">\(f,\)</span> and if
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{max}(\boldsymbol{H})\leq1,\)</span> we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    f(\theta_{k+1})&amp;\leq f(\theta_{k})+g^T(\theta_{k+1}-\theta_{k})+\frac{L}{2}||\theta_{k+1}-\theta_{k}||^2_2 \nonumber\\
+    &amp;\leq f(\theta_{k})+(\frac{L}{2}-\frac{1}{\eta})||\theta_{k+1}-\theta_{k}||^2_2.\nonumber
+\end{aligned}\end{split}\]</div>
+<p>To see why we need the assumption of
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{max}(\boldsymbol{H})\leq1,\)</span> we define
+<span class="math notranslate nohighlight">\(\boldsymbol{H}=\boldsymbol{U}\boldsymbol{\Sigma}\boldsymbol{U}^T\)</span>
+as the singular value decomposition of <span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> with
+<span class="math notranslate nohighlight">\(u_i\)</span> being the column vector of <span class="math notranslate nohighlight">\(\boldsymbol{U}.\)</span> Then
+we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    g^T\boldsymbol{H}^{-1}(\theta_{k+1}-\theta_{k})
+    &amp;=g^T\boldsymbol{U}\boldsymbol{\Sigma}^{-1}\boldsymbol{U}^T(\theta_{k+1}-\theta_{k}) \nonumber\\
+    &amp;=g^T(\sum_{i}\frac{1}{\sigma_i(\boldsymbol{H})}u_iu_i^T)(\theta_{k+1}-\theta_{k})\nonumber\\
+    &amp;=\sum_{i}\frac{1}{\sigma_i(\boldsymbol{H})}g^T(\theta_{k+1}-\theta_{k}).\nonumber
+\end{aligned}\end{split}\]</div>
+<p>If we want to have</p>
+<div class="math notranslate nohighlight">
+\[g^T(\theta_{k+1}-\theta_{k})\leq g^T\boldsymbol{H}^{-1}(\theta_{k+1}-\theta_{k})\leq -\frac{1}{\eta}||\theta_{k+1}-\theta_{k}||^2_2,\]</div>
+<p>then every singular value <span class="math notranslate nohighlight">\(\sigma_i(\boldsymbol{H})\)</span> of
+<span class="math notranslate nohighlight">\(\boldsymbol{H}\)</span> needs to be smaller than <span class="math notranslate nohighlight">\(1\)</span>, and hence
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{max}(\boldsymbol{H})\leq1,\)</span> which justifies the
+assumption we use to prove the bound. ◻</p>
+</div>
+<p>To make the objective value for PCPO with the KL divergence projection
+improves, the right hand side of Eq. (<a class="reference external" href="#eq:bound1">[eq:bound1]</a>)
+needs to be negative. Hence we have
+<span class="math notranslate nohighlight">\(\frac{L\eta}{2}\boldsymbol{I}\prec\boldsymbol{H},\)</span> implying that
+<span class="math notranslate nohighlight">\(\sigma_\mathrm{min}(\boldsymbol{H})&gt;\frac{L\eta}{2}.\)</span> And to make
+the objective value for PCPO with the L2 norm projection improves, the
+right hand side of Eq. (<a class="reference external" href="#eq:bound2">[eq:bound2]</a>) needs to be
+negative. Hence we have <span class="math notranslate nohighlight">\(\eta&lt;\frac{2}{L},\)</span> implying that</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    &amp;\eta = \sqrt{\frac{2\delta}{g^T\boldsymbol{H}^{-1}g}}&lt;\frac{2}{L}\nonumber\\
+     \Rightarrow&amp; \frac{2\delta}{g^T\boldsymbol{H}^{-1}g} &lt; \frac{4}{L^2} \nonumber\\
+     \Rightarrow&amp; \frac{g^{T}\boldsymbol{H}^{-1}g}{2\delta}&gt;\frac{L^2}{4}\nonumber\\
+     \Rightarrow&amp; \frac{L^2\delta}{2}&lt;g^T\boldsymbol{H}^{-1}g\nonumber\\
+     &amp;\leq||g||_2||\boldsymbol{H}^{-1}g||_2\nonumber\\
+     &amp;\leq||g||_2||\boldsymbol{H}^{-1}||_2||g||_2\nonumber\\
+     &amp;=\sigma_\mathrm{max}(\boldsymbol{H}^{-1})||g||^2_2\nonumber\\
+     &amp;=\sigma_\mathrm{min}(\boldsymbol{H})||g||^2_2\nonumber\\
+     \Rightarrow&amp;\sigma_\mathrm{min}(\boldsymbol{H})&gt;\frac{L^2\delta}{2||g||^2_2}.
+     \label{eq:bound_3}
+\end{aligned}\end{split}\]</div>
+<p>By the definition of the condition number and Eq.
+(<a class="reference external" href="#eq:bound_3">[eq:bound_3]</a>), we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \frac{1}{\sigma_\mathrm{min}(\boldsymbol{H})}&amp;&lt;\frac{2||g||_2^2}{L^2\delta}\nonumber\\
+\Rightarrow\frac{\sigma_\mathrm{max}(\boldsymbol{H})}{\sigma_\mathrm{min}(\boldsymbol{H})}&amp;&lt;\frac{2||g||^2_2\sigma_\mathrm{max}(\boldsymbol{H})}{L^2\delta}\nonumber\\
+&amp;\leq \frac{2||g||_2^2}{L^2\delta},\nonumber
+\end{aligned}\end{split}\]</div>
+<p>which justifies what we discuss.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, OmniSafe Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

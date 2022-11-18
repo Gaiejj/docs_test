@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>First Order Constrained Optimization in Policy Space &mdash; OmniSafe 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Projection-Based Constrained Policy Optimization" href="pcpo_docs.html" />
+    <link rel="prev" title="Reward Constrained Policy Optimization" href="rcpo_docs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> OmniSafe
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Introduction.html">Introudction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">OmniSafe’s Algorithms documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="trpo_docs.html">Trust Region Policy Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpo_docs.html">Constrained Policy Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lag.html">TRPO-Lagrangian and PPO-Lagrangian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rcpo_docs.html">Reward Constrained Policy Optimization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">First Order Constrained Optimization in Policy Space</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#target">Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#two-stage-policy-update">Two-stage policy update</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#finding-the-optimal-update-policy">Finding the Optimal Update Policy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#approximating-the-optimal-update-policy">Approximating the Optimal Update Policy</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#practical-implementation">practical implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#variables-analysis">Variables Analysis</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#analysis-of-lambda">Analysis of <span class="math notranslate nohighlight">\(\lambda\)</span></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#analysis-of-nu">Analysis of <span class="math notranslate nohighlight">\(\nu\)</span></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#appendix">Appendix</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#proof-for-theorem-focops-solving-the-optimal-update-policy">Proof for Theorem [FOCOPS:Solving the optimal update policy]</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#proof-of-corollary-focops-corollary1">Proof of Corollary [FOCOPS:corollary1]</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#proof-of-corollary-focops-corollary2">Proof of Corollary [FOCOPS:corollary2]</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pcpo_docs.html">Projection-Based Constrained Policy Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OmniSafe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">OmniSafe’s Algorithms documentation</a> &raquo;</li>
+      <li>First Order Constrained Optimization in Policy Space</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/Algorithms Docs/focops_docs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="first-order-constrained-optimization-in-policy-space">
+<h1>First Order Constrained Optimization in Policy Space<a class="headerlink" href="#first-order-constrained-optimization-in-policy-space" title="Permalink to this heading"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<p>First Order Constrained Optimization in Policy
+Space <a href="#id1"><span class="problematic" id="id2">:raw-latex:`\cite{focops}`</span></a> (FOCOPS) is a new
+CPO <a href="#id3"><span class="problematic" id="id4">:raw-latex:`\cite{cpo}`</span></a>-based method which maximizes an agent’s
+overall reward while ensuring the agent satisfies a set of cost
+constraints. FOCOPS purposes that CPO has disadvantages below:</p>
+<ul class="simple">
+<li><p>Sampling error resulting from taking sample trajectories from the
+current policy.</p></li>
+<li><p>Approximation errors resulting from Taylor approximations.</p></li>
+<li><p>Approximation errors resulting from using conjugate method to
+indirectly calculate the inverse of the Fisher information matrix.</p></li>
+</ul>
+<p>Using a simple first-order method, FOCOPS shows that it is able to
+eliminate the last two sources of error and outperform CPO. FOCOPS
+mainly includes the following contributions: To begin with, it provide
+two-stage policy update to optimize current policy. Next, it provides
+the practical implementation for solving the two-stage policy update.
+Finally, FOCOPS provides rigorous derivative proofs for the above
+theories, as detailed in the appendix to this tutorial. One suggested
+reading order is CPO, PCPO <a href="#id5"><span class="problematic" id="id6">:raw-latex:`\cite{pcpo}`</span></a> then FOCOPS. If you
+haven’t read the PCPO yet, it doesn’t matter, it won’t affect your
+reading experience much. But be sure to read this article after reading
+the CPO tutorial we have written so that you can fully understand
+following passage.</p>
+</section>
+<section id="target">
+<h2>Target<a class="headerlink" href="#target" title="Permalink to this heading"></a></h2>
+<p>In the previous chapters, you learned that CPO solves the following
+optimization problems:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    &amp; \pi_{k+1}=\arg \max _{\pi \in \Pi_\theta} \E_{\substack{s \sim d_{\pi_k}\\a \sim \pi}}\left[A_{\pi_k}(s, a)\right]
+    \label{FOCOPS:CPO_Target}\\
+    \text{s.t.} \quad &amp; J^{C}\left(\pi_k\right)+\frac{1}{1-\gamma} \E_{\substack{s \sim d_{\pi_k} \\ a \sim \pi}}\left[A^{C}_{\pi_k}(s, a)\right] \leq d \quad \label{FOCOPS:CPO_C_Target} \\
+    &amp; \bar{D}_{K L}\left(\pi \| \pi_k\right) \leq \delta\label{FOCOPS:CPO_D_Target}
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\prod_{\theta}\subseteq\prod\)</span> denotes the set of
+parametrized policies with parameters <span class="math notranslate nohighlight">\(\theta\)</span>, and
+<span class="math notranslate nohighlight">\(\bar{D}_{K L}\)</span> is the KL divergence of two policy. In local
+policy search for CMDPs, we additionally require policy iterates to be
+feasible for the CMDP, so instead of optimizing over
+<span class="math notranslate nohighlight">\(\prod_{\theta}\)</span>, PCPO optimize over
+<span class="math notranslate nohighlight">\(\prod_{\theta}\cap\prod_{C}\)</span>. Next, we will introduce you to how
+FOCOPS solves the above optimization problems. In order for you to have
+a clearer understanding, we hope that you will read the next section
+with the following questions:</p>
+<ul class="simple">
+<li><p>What is two-stage policy update and how?</p></li>
+<li><p>How to practically implement FOCOPS?</p></li>
+<li><p>How parameters impact on the performance of the algorithm?</p></li>
+</ul>
+</section>
+<section id="two-stage-policy-update">
+<h2>Two-stage policy update<a class="headerlink" href="#two-stage-policy-update" title="Permalink to this heading"></a></h2>
+<p>Instead of solving Problem
+<a class="reference external" href="#FOCOPS:CPO_Target">[FOCOPS:CPO_Target]</a>-<a class="reference external" href="#FOCOPS:CPO_D_Target">[FOCOPS:CPO_D_Target]</a>
+directly, FOCOPS use a two-stage approach summarized below:</p>
+<ul class="simple">
+<li><p>Given policy <span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span>, find an <em>optimal update policy</em>
+<span class="math notranslate nohighlight">\(\pi^*\)</span> by solving the optimization problem from Problem
+<a class="reference external" href="#FOCOPS:CPO_Target">[FOCOPS:CPO_Target]</a>-<a class="reference external" href="#FOCOPS:CPO_D_Target">[FOCOPS:CPO_D_Target]</a>
+in the nonparameterized policy space.</p></li>
+<li><p>Project the policy found in the previous step back into the
+parameterized policy space <span class="math notranslate nohighlight">\(\Pi_{\theta}\)</span> by solving for the
+closest policy <span class="math notranslate nohighlight">\(\pi_{\theta}\in\Pi_{\theta}\)</span> to <span class="math notranslate nohighlight">\(\pi^*\)</span>
+in order to obtain <span class="math notranslate nohighlight">\(\pi_{\theta_{k+1}}\)</span>.</p></li>
+</ul>
+<section id="finding-the-optimal-update-policy">
+<h3>Finding the Optimal Update Policy<a class="headerlink" href="#finding-the-optimal-update-policy" title="Permalink to this heading"></a></h3>
+<p>In the first stage, FOCOPS rewrites Problem
+<a class="reference external" href="#FOCOPS:CPO_Target">[FOCOPS:CPO_Target]</a>-<a class="reference external" href="#FOCOPS:CPO_D_Target">[FOCOPS:CPO_D_Target]</a>
+as below:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    &amp; \pi^*=\arg \max _{\pi \in \Pi} \E_{\substack{s \sim d_{\pi_k}\\a \sim \pi}}\left[A_{\pi_k}(s, a)\right]
+    \label{FOCOPS:Target}\\
+    \text{s.t.} \quad &amp; J^{C}\left(\pi_k\right)+\frac{1}{1-\gamma} \E_{\substack{s \sim d_{\pi_k} \\ a \sim \pi}}\left[A^{C}_{\pi_k}(s, a)\right] \leq d \quad \label{FOCOPS:C_Target} \\
+    &amp; \bar{D}_{K L}\left(\pi \| \pi_k\right) \leq \delta\label{FOCOPS:D_Target}
+\end{aligned}\end{split}\]</div>
+<p>In fact, these problems are only slightly different from Problem
+<a class="reference external" href="#FOCOPS:CPO_Target">[FOCOPS:CPO_Target]</a>-<a class="reference external" href="#FOCOPS:CPO_D_Target">[FOCOPS:CPO_D_Target]</a>,
+that is the parameter of interest is now the nonparameterized policy
+<span class="math notranslate nohighlight">\(\pi\)</span> and not the policy parameter <span class="math notranslate nohighlight">\(\theta\)</span>. Then FOCOPS
+provides a solution as following:</p>
+<div class="theorem docutils container">
+<p>Let
+<span class="math notranslate nohighlight">\(\tilde{b}=(1-\gamma)\left(b-\tilde{J}^C\left(\pi_{\theta_k}\right)\right)\)</span>
+If <span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span> is a feasible solution, the optimal policy
+for Problem
+<a class="reference external" href="#FOCOPS:Target">[FOCOPS:Target]</a>-<a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a>
+takes the form</p>
+<div class="math notranslate nohighlight">
+\[\label{FOCOPS:Theorem1_Eq1}
+\pi^*(a \mid s)=\frac{\pi_{\theta_k}(a \mid s)}{Z_{\lambda, \nu}(s)} \exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right)\]</div>
+<p>where <span class="math notranslate nohighlight">\(Z_{\lambda,\nu}(s)\)</span> is the partition function which
+ensures Problem <a class="reference external" href="#FOCOPS:Theorem1_Eq1">[FOCOPS:Theorem1_Eq1]</a> is a
+valid probability distribution, <span class="math notranslate nohighlight">\(\lambda\)</span> and <span class="math notranslate nohighlight">\(\nu\)</span> are
+solutions to the optimization problem:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\label{FOCOPS:Theorem1_Eq2}
+\min _{\lambda, \nu \geq 0} \lambda \delta+\nu \tilde{b}+\lambda \underset{\substack{s \sim d^{\pi_{\theta_k}} \\ a \sim \pi^*}}{\mathbb{E}}\left[\log Z_{\lambda, \nu}(s)\right]\end{split}\]</div>
+</div>
+<p>The form of the optimal policy is intuitive, it gives high probability
+mass to areas of the state-action space with high return which is offset
+by a penalty term times the cost advantage. We will refer to the optimal
+solution to Problem
+<a class="reference external" href="#FOCOPS:Target">[FOCOPS:Target]</a>-<a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a>
+as the <em>optimal update policy</em>. If you don’t quite understand the
+meaning of the above equation, you can first think that FOCOPS finally
+solves Problem
+<a class="reference external" href="#FOCOPS:Target">[FOCOPS:Target]</a>-<a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a>
+by solving Problem <a class="reference external" href="#FOCOPS:Theorem1_Eq1">[FOCOPS:Theorem1_Eq1]</a> and
+<a class="reference external" href="#FOCOPS:Theorem1_Eq2">[FOCOPS:Theorem1_Eq2]</a>. That is, Theorem
+<a class="reference external" href="#FOCOPS:Solvingtheoptimalupdatepolicy">[FOCOPS:Solving the optimal update policy]</a>
+is a viable solution. We have given a detailed proof of Theorem
+<a class="reference external" href="#FOCOPS:Solvingtheoptimalupdatepolicy">[FOCOPS:Solving the optimal update policy]</a>
+in the appendix, and reading it together with the body part can deepen
+your understanding.</p>
+<div class="tcolorbox docutils container">
+<div class="line-block">
+<div class="line"><strong>Question:</strong> what is the bound for FOCOPS worst-case guarantee for
+cost constraint?</div>
+<div class="line"><strong>Answer:</strong> FOCOPS purpose that the optimal update policy
+<span class="math notranslate nohighlight">\(\pi^*\)</span> satisfies the following bound for worst-case
+guarantee for cost constraint in CPO:</div>
+</div>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[J^C\left(\pi^*\right) \leq d+\frac{\sqrt{2 \delta} \gamma \epsilon_C^{\pi^*}}{(1-\gamma)^2}\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(\epsilon^C_{\pi^*}=\max _s\left|\mathbb{E}_{a \sim \pi}\left[A^C_{\pi_{\theta_k}}(s, a)\right]\right|\)</span>.</p>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><strong>Question:</strong> Can FOCOPS solve the multi-constraint problem and
+how?</div>
+<div class="line"><strong>Answer:</strong> By introducing Lagrange multipliers
+<span class="math notranslate nohighlight">\(\nu_1,\nu_2,...,\nu_m\ge0\)</span>, one for each cost constraint and
+applying a similar duality arguments, FOCOPS extend its results to
+accommodate for multiple constraints.</div>
+</div>
+</div>
+</section>
+<section id="approximating-the-optimal-update-policy">
+<h3>Approximating the Optimal Update Policy<a class="headerlink" href="#approximating-the-optimal-update-policy" title="Permalink to this heading"></a></h3>
+<p>In previous section the optimal update policy <span class="math notranslate nohighlight">\(\pi^*\)</span> is obtained,
+however, it is not a parameterized policy. In this section we will show
+you how FOCOPS project the optimal update policy back into the
+parameterized policy space by minimizing the loss function:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}(\theta)=\underset{s \sim d^{\pi_{\theta_k}}}{\mathbb{E}}\left[D_{\mathrm{KL}}\left(\pi_\theta \| \pi^*\right)[s]\right]\]</div>
+<p>Here <span class="math notranslate nohighlight">\(\pi_{\theta}\in \Pi_{\theta}\)</span> is some projected policy which
+FOCOPS will use to approximate the optimal update policy. the
+first-order methods is also used to minimize this loss function:</p>
+<div class="corollary docutils container">
+<p>The gradient of <span class="math notranslate nohighlight">\(\mathcal{L}(\theta)\)</span> takes the form</p>
+<div class="math notranslate nohighlight">
+\[\label{FOCOPS:Gradient of L}
+\nabla_\theta \mathcal{L}(\theta)=\underset{s \sim d^{\pi_\theta}}{\mathbb{E}}\left[\nabla_\theta D_{K L}\left(\pi_\theta \| \pi^*\right)[s]\right]\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp; \nabla_\theta D_{K L}\left(\pi_\theta \| \pi^*\right)[s]=\nabla_\theta D_{K L}\left(\pi_\theta \| \pi_{\theta_k}\right)[s]\nonumber\\
+&amp; -\frac{1}{\lambda} \underset{a \sim \pi_{\theta_k}}{\mathbb{E}}\left[\frac{\nabla_\theta \pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right]
+\end{aligned}\end{split}\]</div>
+</div>
+<p><em>Proof.</em> See Appendix.</p>
+<p>Note that Equation <a class="reference external" href="#FOCOPS:GradientofL">[FOCOPS:Gradient of L]</a>
+can be estimated by sampling from the trajectories generated by policy
+<span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span> so policy can be trained using stochastic
+gradients.</p>
+<p>Corollary <a class="reference external" href="#FOCOPS:corollary1">[FOCOPS:corollary1]</a> provides an
+outline for FOCOPS algorithm: At every iteration we begin with a policy
+<span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span>, which we use to run trajectories and gather
+data. We use that data and Equation
+<a class="reference external" href="#FOCOPS:Theorem1_Eq2">[FOCOPS:Theorem1_Eq2]</a> to first estimate
+<span class="math notranslate nohighlight">\(\lambda\)</span> and <span class="math notranslate nohighlight">\(\nu\)</span>. We then draw a minibatch from the data
+to estimate <span class="math notranslate nohighlight">\(\nabla_\theta \mathcal{L}(\theta)\)</span> given in Corollary
+<a class="reference external" href="#FOCOPS:corollary1">[FOCOPS:corollary1]</a>. After taking a gradient
+step using Equation <a class="reference external" href="#FOCOPS:GradientofL">[FOCOPS:Gradient of L]</a>,
+we draw another minibatch and repeat the process.</p>
+</section>
+</section>
+<section id="practical-implementation">
+<h2>practical implementation<a class="headerlink" href="#practical-implementation" title="Permalink to this heading"></a></h2>
+<p>Solving Problem <a class="reference external" href="#FOCOPS:Theorem1_Eq2">[FOCOPS:Theorem1_Eq2]</a> is
+computationally impractical for large state or action spaces as it
+requires calculating the partition function <span class="math notranslate nohighlight">\(Z_{\lambda,\nu}(s)\)</span>
+which often involves evaluating a high-dimensional integral or sum.
+Furthermore, <span class="math notranslate nohighlight">\(\lambda\)</span> and <span class="math notranslate nohighlight">\(\nu\)</span> depend on <span class="math notranslate nohighlight">\(k\)</span> and
+should be adapted at every iteration. So in this section we will
+introduce you how FOCOPS practically implement its algorithm purposed.
+In practice, FOCOPS found that a fixed <span class="math notranslate nohighlight">\(\lambda\)</span> found through
+hyperparameter sweeps provides good results, whcih means the value of
+<span class="math notranslate nohighlight">\(\lambda\)</span> does not have to be updated. However <span class="math notranslate nohighlight">\(\nu\)</span> needs
+to be continuously adapted during training so as to ensure cost
+constraint satisfaction. FOCOPS appeals to an intuitive heuristic for
+determining <span class="math notranslate nohighlight">\(\nu\)</span> based on primal-dual gradient methods. With
+strong duality, the optimal <span class="math notranslate nohighlight">\(\lambda^*\)</span> and <span class="math notranslate nohighlight">\(\nu^*\)</span>
+minimizes the dual function
+<a class="reference external" href="#FOCOPS:Theorem1_Eq2">[FOCOPS:Theorem1_Eq2]</a> which then be denoted
+as <span class="math notranslate nohighlight">\(L(\pi^*,\lambda,\nu)\)</span>. By applying gradient descent w.r.t
+<span class="math notranslate nohighlight">\(\nu\)</span> to minimize <span class="math notranslate nohighlight">\(L(\pi^*,\lambda,\nu)\)</span>, we obtain:</p>
+<div class="corollary docutils container">
+<p>The derivative of <span class="math notranslate nohighlight">\(L(\pi^*,\lambda,\nu)\)</span> w.r.t <span class="math notranslate nohighlight">\(\nu\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\label{FOCOPS:Eq for corollary2}
+\frac{\partial L\left(\pi^*, \lambda, \nu\right)}{\partial \nu}=\tilde{b}-\underset{\substack{s \sim d^{\pi^*} \\ a \sim \pi^*}}{\mathbb{E}}\left[A_{\pi_{\theta_k}}(s, a)\right]\end{split}\]</div>
+</div>
+<p><em>Proof.</em> See Appendix. The last term in the gradient expression in
+Equation <a class="reference external" href="#FOCOPS:Eqforcorollary2">[FOCOPS:Eq for corollary2]</a>
+cannot be evaluated since we do not have access to <span class="math notranslate nohighlight">\(\pi^*\)</span>.
+However since <span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span> and <span class="math notranslate nohighlight">\(\pi^*\)</span> are ’close’ (by
+constraint <a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a>), it is reasonable
+to assume that
+<span class="math notranslate nohighlight">\(E_{s \sim d^{\pi_k}, a \sim \pi^*}\left[A_{\pi_{\theta_k}}(s, a)\right] \approx E_{s \sim d^{\pi_k}, a \sim \pi_{\theta_k}}\left[A_{\pi_{\theta_k}}(s, a)\right]=0\)</span>.
+In practice this term can be set to zero which gives the update term:</p>
+<div class="math notranslate nohighlight">
+\[\label{FOCOPS:update1}
+\nu \leftarrow \underset{\nu}{\operatorname{proj}}\left[\nu-\alpha\left(d-J^C\left(\pi_{\theta_k}\right)\right)\right]\]</div>
+<p>where <span class="math notranslate nohighlight">\(\alpha\)</span> is the step size. Note that we have incorporated
+the discount term <span class="math notranslate nohighlight">\((1-\gamma)\)</span> into <span class="math notranslate nohighlight">\(\tilde{b}\)</span> into the
+step size. The projection operator <span class="math notranslate nohighlight">\(proj_{\nu}\)</span> projects
+<span class="math notranslate nohighlight">\(\nu\)</span> back into the interval <span class="math notranslate nohighlight">\([0,\nu_{max}]\)</span> where
+<span class="math notranslate nohighlight">\(\nu_{max}\)</span> is chosen so that <span class="math notranslate nohighlight">\(\nu\)</span> does not become too
+large. In fact. FOCOPS purposed that even setting
+<span class="math notranslate nohighlight">\(\nu_{max}=+\infty\)</span> does not appear to greatly reduce performance.
+Practically, <span class="math notranslate nohighlight">\(J^C(\pi_{\theta_k})\)</span> can be estimated via Monte
+Carlo methods using trajectories collected from <span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span>.
+Using the update rule <a class="reference external" href="#FOCOPS:update1">[FOCOPS:update1]</a>, FOCOPS
+performs one update step on <span class="math notranslate nohighlight">\(\nu\)</span> before updating the policy
+parameters <span class="math notranslate nohighlight">\(\theta\)</span>. A per-state acceptance indicator function
+<span class="math notranslate nohighlight">\(I\left(s_j\right)^n:=\mathbf{1}_{D_{\mathrm{KL}}\left(\pi_\theta \| \pi_{\theta_k}\right)\left[s_j\right] \leq \delta}\)</span>
+is added to <a class="reference external" href="#FOCOPS:GradientofL">[FOCOPS:Gradient of L]</a> in order
+to better enforce the accuracy for the purposed first-order method.</p>
+<div class="tcolorbox docutils container">
+<div class="line-block">
+<div class="line"><strong>Question:</strong> Why the function <span class="math notranslate nohighlight">\(I\)</span> can enforce the accuracy
+for the purposed first-order method?</div>
+<div class="line"><strong>Answer:</strong> Function <span class="math notranslate nohighlight">\(I\)</span> rejects the sampled states whose
+<span class="math notranslate nohighlight">\(D_{KL}(\pi_{\theta}||\pi_{\theta_k})\)</span> is too large from
+gradient update. If one sampled states violates the constraints of
+KL-divergence, it will not take part in gradient descent.</div>
+</div>
+</div>
+<p>Finally the FOCOPS sample gradient update term is:</p>
+<div class="math notranslate nohighlight">
+\[\label{FOCOPS:update2}
+    \hat{\nabla}_\theta \mathcal{L}(\theta) \approx \frac{1}{N} \sum_{j=1}^N\left[\nabla_\theta D_{\mathrm{KL}}\left(\pi_\theta \| \pi_{\theta_k}\right)\left[s_j\right]-A^{\lambda}\right] I\left(s_j\right)\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(A^{\lambda}=\frac{1}{\lambda} \frac{\nabla_\theta \pi_\theta\left(a_j \mid s_j\right)}{\pi_{\theta_k}\left(a_j \mid s_j\right)}\left(\hat{A}\left(s_j, a_j\right)-\nu \hat{A}^C\left(s_j, a_j\right)\right)\)</span></p>
+<p><em>Proof.</em> See Appendix.</p>
+<p>Here <span class="math notranslate nohighlight">\(N\)</span> is the number of samples collected by policy
+<span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span>, <span class="math notranslate nohighlight">\(\hat A\)</span> and <span class="math notranslate nohighlight">\(\hat A^C\)</span> are
+estimates of the advantage functions (for the return and cost) obtained
+from critic networks. The advantage functions is obtained by using the
+Generalized Advantage Estimator (GAE) <a href="#id7"><span class="problematic" id="id8">:raw-latex:`\cite{gae}`</span></a>. Note that
+FOCOPS only requires first order methods (gradient descent) and is thus
+extremely simple to implement.</p>
+</section>
+<section id="variables-analysis">
+<h2>Variables Analysis<a class="headerlink" href="#variables-analysis" title="Permalink to this heading"></a></h2>
+<p>In this section we will explain the meaning of parameters
+<span class="math notranslate nohighlight">\(\lambda\)</span> and <span class="math notranslate nohighlight">\(\mu\)</span> of FOCOPS and point out their impact on
+the performance of the algorithm in the experiment. Reading this section
+will give you a more intuitive understanding of the idea of FOCOPS.</p>
+<section id="analysis-of-lambda">
+<h3>Analysis of <span class="math notranslate nohighlight">\(\lambda\)</span><a class="headerlink" href="#analysis-of-lambda" title="Permalink to this heading"></a></h3>
+<p>In Equation <a class="reference external" href="#FOCOPS:Theorem1_Eq1">[FOCOPS:Theorem1_Eq1]</a>, note that
+as <span class="math notranslate nohighlight">\(\lambda \rightarrow 0\)</span>, <span class="math notranslate nohighlight">\(\pi^*\)</span> approaches a greedy
+policy; as <span class="math notranslate nohighlight">\(\lambda\)</span> increase, the policy becomes more
+exploratory. Therefore <span class="math notranslate nohighlight">\(\lambda\)</span> is similar to the temperature
+term used in maximum entropy reinforcement learning, which has been
+shown to produce reasonable results when kept fixed during training. In
+practice, FOCOPS finds that its algorithm reaches the best performance
+when the <span class="math notranslate nohighlight">\(\lambda\)</span> is fixed.</p>
+</section>
+<section id="analysis-of-nu">
+<h3>Analysis of <span class="math notranslate nohighlight">\(\nu\)</span><a class="headerlink" href="#analysis-of-nu" title="Permalink to this heading"></a></h3>
+<p>We recall that in Equation
+<a class="reference external" href="#FOCOPS:Theorem1_Eq1">[FOCOPS:Theorem1_Eq1]</a>, <span class="math notranslate nohighlight">\(\nu\)</span> acts as a
+cost penalty term where increasing <span class="math notranslate nohighlight">\(\nu\)</span> makes it less likely for
+state-action pairs with higher costs to be sampled by <span class="math notranslate nohighlight">\(\pi^*\)</span>
+Hence in this regard, the update rule in
+<a class="reference external" href="#FOCOPS:update1">[FOCOPS:update1]</a> is intuitive in that it increases
+<span class="math notranslate nohighlight">\(\nu\)</span> if <span class="math notranslate nohighlight">\(J^C(\pi_{\theta_k})&gt;d\)</span> (which means the agent
+violate the cost constraints) and decreases <span class="math notranslate nohighlight">\(\nu\)</span> otherwise.</p>
+</section>
+</section>
+<section id="appendix">
+<h2>Appendix<a class="headerlink" href="#appendix" title="Permalink to this heading"></a></h2>
+<section id="proof-for-theorem-focops-solving-the-optimal-update-policy">
+<h3>Proof for Theorem <a class="reference external" href="#FOCOPS:Solvingtheoptimalupdatepolicy">[FOCOPS:Solving the optimal update policy]</a><a class="headerlink" href="#proof-for-theorem-focops-solving-the-optimal-update-policy" title="Permalink to this heading"></a></h3>
+<div class="lemma docutils container">
+<div class="line-block">
+<div class="line">Problem
+<a class="reference external" href="#FOCOPS:Target">[FOCOPS:Target]</a>-<a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a>
+is convex w.r.t</div>
+<div class="line"><span class="math notranslate nohighlight">\(\pi={\pi(a|s):s\in \mathrm{S},a\in\mathrm{A}}\)</span>.</div>
+</div>
+</div>
+<p><em>Proof</em>. First note that the objective function is linear w.r.t
+<span class="math notranslate nohighlight">\(\pi\)</span>. Since <span class="math notranslate nohighlight">\(J^{C}(\pi_{\theta_k})\)</span> is a constant w.r.t
+<span class="math notranslate nohighlight">\(\pi\)</span>, constraint <a class="reference external" href="#FOCOPS:C_Target">[FOCOPS:C_Target]</a> is
+linear. Constraint <a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a> can be
+rewritten as
+<span class="math notranslate nohighlight">\(\sum_s d^{\pi_{\theta_k}}(s) D_{\mathrm{KL}}\left(\pi \| \pi_{\theta_k}\right)[s] \leq \delta\)</span>.
+The KL divergence is convex w.r.t its first argument, hence Constraint
+<a class="reference external" href="#FOCOPS:C_Target">[FOCOPS:C_Target]</a> which is a linear combination
+of convex functions is also convex. Since <span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span>
+satisfies Constraint <a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a> is also
+satisfies Constraint <a class="reference external" href="#FOCOPS:C_Target">[FOCOPS:C_Target]</a>, therefore
+Slater’s constraint qualification holds, strong duality holds.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line">So the optimal value of Problem
+<a class="reference external" href="#FOCOPS:Target">[FOCOPS:Target]</a>-<a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a>
+<span class="math notranslate nohighlight">\(p^*\)</span> can be solved by solving the corresponding dual problem,
+Let</div>
+</div>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[L(\pi, \lambda, \nu)=\lambda \delta+\nu \tilde{b}+\underset{s \sim d^{\pi_{\theta_k}}}{\mathbb{E}}\left[A^{lag}-\lambda D_{\mathrm{KL}}\left(\pi \| \pi_{\theta_k}\right)[s]\right]\nonumber\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(A^{lag}=\underset{a \sim \pi(\cdot \mid s)}{\mathbb{E}}\left[A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right]\)</span>.
+Therefore.</p>
+<div class="math notranslate nohighlight">
+\[\label{FOCOPS:lag_dual}
+p^*=\max _{\pi \in \Pi} \min _{\lambda, \nu \geq 0} L(\pi, \lambda, \nu)=\min _{\lambda, \nu \geq 0} \max _{\pi \in \Pi} L(\pi, \lambda, \nu)\]</div>
+<p>Note that if <span class="math notranslate nohighlight">\(\pi^*\)</span>, <span class="math notranslate nohighlight">\(\lambda^*\)</span>, <span class="math notranslate nohighlight">\(\nu^*\)</span> are
+optimal for Problem<a class="reference external" href="#FOCOPS:lag_dual">[FOCOPS:lag_dual]</a>,
+<span class="math notranslate nohighlight">\(\pi^*\)</span> is also optimal for Problem
+<a class="reference external" href="#FOCOPS:Target">[FOCOPS:Target]</a>-<a class="reference external" href="#FOCOPS:D_Target">[FOCOPS:D_Target]</a>
+because of the strong duality.</p>
+</div></blockquote>
+<p>Consider the inner maximization problem in Problem
+<a class="reference external" href="#FOCOPS:lag_dual">[FOCOPS:lag_dual]</a>, we separate it from the
+original problem and try to solve it first:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\label{FOCOPS:lag1}
+\begin{array}{cl}
+\underset{\pi}{\operatorname{max}} &amp; A^{lag}-\underset{a \sim \pi(\cdot \mid s)}{\mathbb{E}}\left[\lambda\left(\log \pi(a \mid s)+\log \pi_{\theta_k}(a \mid s)\right)\right] \\
+\text { s.t. } &amp; \sum_a \pi(a \mid s)=1 \\
+&amp; \pi(a \mid s) \geq 0 \quad \forall a \in \mathcal{A}
+\end{array}\end{split}\]</div>
+<p>which is equivalent to the inner maximization problem in
+<a class="reference external" href="#FOCOPS:lag_dual">[FOCOPS:lag_dual]</a>. This is clearly a convex
+optimization problem which we can solve using a simple Lagrangian
+argument. We can write the Lagrangian of it as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+G(\pi)=\sum_a \pi(a \mid s)\left[A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right.\\
+\nonumber
+\left.-\lambda\left(\log \pi(a \mid s)-\log \pi_{\theta_k}(a \mid s)\right)+\zeta\right]-1
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\zeta &gt; 0\)</span> is the Lagrange multiplier associated with the
+constraint <span class="math notranslate nohighlight">\(\sum_a \pi(a \mid s)=1\)</span>. Different <span class="math notranslate nohighlight">\(G(\pi)\)</span>
+w.r.t. <span class="math notranslate nohighlight">\(\pi(a \mid s)\)</span> for some <span class="math notranslate nohighlight">\(a\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\label{FOCOPS:D_lag_1}
+\frac{\partial G}{\partial \pi(a \mid s)}=A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\nonumber\\-\lambda\left(\log \pi(a \mid s)+1-\log \pi_{\theta_k}(a \mid s)\right)+\zeta
+\end{aligned}\end{split}\]</div>
+<p>Setting Equation<a class="reference external" href="#FOCOPS:D_lag_1">[FOCOPS:D_lag_1]</a> to zero and
+rearranging the term, we obtain:</p>
+<div class="math notranslate nohighlight">
+\[\pi(a \mid s)=\pi_{\theta_k}(a \mid s) \exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)+\frac{\zeta}{\lambda}+1\right)\]</div>
+<p>We chose <span class="math notranslate nohighlight">\(\zeta\)</span> so that <span class="math notranslate nohighlight">\(\sum_a \pi(a \mid s)=1\)</span> and
+rewrite <span class="math notranslate nohighlight">\(\zeta / \lambda+1\)</span> as <span class="math notranslate nohighlight">\(Z_{\lambda, \nu}(s)\)</span>. We
+find that the optimal solution <span class="math notranslate nohighlight">\(\pi^*\)</span> to Equation
+<a class="reference external" href="#FOCOPS:lag1">[FOCOPS:lag1]</a> takes the form</p>
+<div class="math notranslate nohighlight">
+\[\pi^*(a \mid s)=\frac{\pi_{\theta_k}(a \mid s)}{Z_{\lambda, \nu}(s)} \exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right)\]</div>
+<p>Then we obtain:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\underset{\substack{s \sim d^{\theta_{\theta_k}} \\
+a \sim \pi^*}}{\mathbb{E}}\left[A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)-\lambda\left(\log \pi^*(a \mid s)-\log \pi_{\theta_k}(a \mid s)\right)\right] \\
+=&amp;\underset{\substack{s \sim d^{\pi_{\theta_k}} \\
+a \sim \pi^*}}{\mathbb{E}}\left[A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)-\lambda\left(\log \pi_{\theta_k}(a \mid s)-\log Z_{\lambda, \nu}(s)\right.\right. \\
+&amp;\left.\left.+\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)-\log \pi_{\theta_k}(a \mid s)\right)\right]\\
+=&amp;\lambda\underset{\substack{s \sim d^{\theta_{\theta_k}} \\
+a \sim \pi^*}}{\mathbb{E}}[logZ_{\lambda,\nu}(s)]\nonumber
+\end{aligned}\end{split}\]</div>
+<p>Plugging the result back to Equation
+<a class="reference external" href="#FOCOPS:lag_dual">[FOCOPS:lag_dual]</a>, we obtain:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}p^*=\underset{\lambda,\nu\ge0}{min}\lambda\delta+\nu\tilde{b}+\lambda\underset{\substack{s \sim d^{\theta_{\theta_k}} \\
+a \sim \pi^*}}{\mathbb{E}}[logZ_{\lambda,\nu}(s)]\end{split}\]</div>
+</section>
+<section id="proof-of-corollary-focops-corollary1">
+<h3>Proof of Corollary <a class="reference external" href="#FOCOPS:corollary1">[FOCOPS:corollary1]</a><a class="headerlink" href="#proof-of-corollary-focops-corollary1" title="Permalink to this heading"></a></h3>
+<p><em>Proof.</em> We only need to calculate the gradient of the loss function for
+a single sampled s. We first note that,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{split}
+&amp;D_{\mathrm{KL}}\left(\pi_\theta \| \pi^*\right)[s]\\ &amp;=-\sum_a \pi_\theta(a \mid s) \log \pi^*(a \mid s)+\sum_a \pi_\theta(a \mid s) \log \pi_\theta(a \mid s) \\
+&amp;=H\left(\pi_\theta, \pi^*\right)[s]-H\left(\pi_\theta\right)[s]
+\end{split}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(H\left(\pi_\theta\right)[s]\)</span> is the entropy and
+<span class="math notranslate nohighlight">\(H\left(\pi_\theta, \pi^*\right)[s]\)</span> is the cross-entropy under
+state <span class="math notranslate nohighlight">\(s\)</span>. The above equation is the basic mathematical knowledge
+in information theory, which you can get in any information theory
+textbook. We expand the cross entropy term which gives us:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;H\left(\pi_\theta, \pi^*\right)[s] =-\sum_a \pi_\theta(a \mid s) \log \pi^*(a \mid s) \\
+&amp;=-\sum_a \pi_\theta(a \mid s) \log \left(\frac{\pi_{\theta_k}(a \mid s)}{Z_{\lambda, \nu}(s)} \exp \left[\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right]\right) \\
+&amp;=-\sum_a \pi_\theta(a \mid s) \log \pi_{\theta_k}(a \mid s)+\log Z_{\lambda, \nu}(s)\\&amp;-\frac{1}{\lambda} \sum_a \pi_\theta(a \mid s)\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\nonumber
+\end{aligned}\end{split}\]</div>
+<p>We then subtract the entropy term to recover the KL divergence:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;D_{\mathrm{KL}}\left(\pi_\theta \| \pi^*\right)[s]=D_{\mathrm{KL}}\left(\pi_\theta \| \pi_{\theta_k}\right)[s]+\log Z_{\lambda, \nu}(s)-\\&amp;\frac{1}{\lambda} \underset{a \sim \pi_{\theta_k}(\cdot \mid s)}{\mathbb{E}}\left[\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right]\nonumber
+\end{aligned}\end{split}\]</div>
+<p>where in the last equality we applied importance sampling to rewrite the
+expectation w.r.t. <span class="math notranslate nohighlight">\(\pi_{\theta_k}\)</span>. Finally, taking the gradient
+on both sides gives us:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\nabla_\theta D_{\mathrm{KL}}\left(\pi_\theta \| \pi^*\right)[s]=\nabla_\theta D_{\mathrm{KL}}\left(\pi_\theta \| \pi_{\theta_k}\right)[s]\\&amp;-\frac{1}{\lambda} \underset{a \sim \pi_{\theta_k}(\cdot \mid s)}{\mathbb{E}}\left[\frac{\nabla_\theta \pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right]\nonumber
+\end{aligned}\end{split}\]</div>
+</section>
+<section id="proof-of-corollary-focops-corollary2">
+<h3>Proof of Corollary <a class="reference external" href="#FOCOPS:corollary2">[FOCOPS:corollary2]</a><a class="headerlink" href="#proof-of-corollary-focops-corollary2" title="Permalink to this heading"></a></h3>
+<p><em>Proof.</em> From Theorem
+<a class="reference external" href="#FOCOPS:Solvingtheoptimalupdatepolicy">[FOCOPS:Solving the optimal update policy]</a>,
+we have:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}L\left(\pi^*, \lambda, \nu\right)=\lambda \delta+\nu \tilde{b}+\lambda \underset{\substack{s \sim d^{\pi^*} \\ a \sim \pi^*}}{\mathbb{E}}\left[\log Z_{\lambda, \nu}(s)\right]\end{split}\]</div>
+<p>The first two terms is an affine function w.r.t. <span class="math notranslate nohighlight">\(\nu\)</span>, therefore
+its derivative is <span class="math notranslate nohighlight">\(\tilde{b}\)</span>. We will then focus on the
+expectation in the last term. To simplify our derivation, we will first
+calculate the derivative of <span class="math notranslate nohighlight">\(\pi^*\)</span> w.r.t. <span class="math notranslate nohighlight">\(\nu\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\frac{\partial \pi^*(a \mid s)}{\partial \nu} \\=&amp;\frac{\pi_{\theta_k}(a \mid s)}{Z_{\lambda, \nu}^2(s)}\left[Z_{\lambda, \nu}(s) \frac{\partial}{\partial \nu} \exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right)\right.\\
+&amp;\left.-\exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right) \frac{\partial Z_{\lambda, \nu}(s)}{\partial \nu}\right] \\
+=&amp;-\frac{A^C_{\pi_{\theta_k}}(s, a)}{\lambda} \pi^*(a \mid s)-\pi^*(a \mid s) \frac{\partial \log Z_{\lambda, \nu}(s)}{\partial \nu}\nonumber
+\end{aligned}\end{split}\]</div>
+<p>Therefore the derivative of the expectation in the last term of
+<span class="math notranslate nohighlight">\(L(\pi^*,\lambda,\nu)\)</span> can be written as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}\label{FOCOPS:proof_C2_1}
+&amp; \frac{\partial}{\partial \nu} \underset{\substack{s \sim d^\pi \theta_k \\
+a \sim \pi^*}}{\mathbb{E}}\left[\log Z_{\lambda, \nu}(s)\right] \\
+=&amp; \underset{\substack{s \sim d^{\pi_\theta} \\
+a \sim \pi_{\theta_k}}}{\mathbb{E}}\left[\frac{\partial}{\partial \nu}\left(\frac{\pi^*(a \mid s)}{\pi_{\theta_k}(a \mid s)} \log Z_{\lambda, \nu}(s)\right)\right] \\
+=&amp; \underset{\substack{s \sim d^{\pi_\theta} \\
+a \sim \pi_{\theta_k}}}{\mathbb{E}}\left[\frac{1}{\pi_{\theta_k}(a \mid s)}\left(\frac{\partial \pi^*(a \mid s)}{\partial \nu} \log Z_{\lambda, \nu}(s)+\pi^*(a \mid s) \frac{\partial \log Z_{\lambda, \nu}(s)}{\partial \nu}\right)\right] \\
+=&amp; \underset{\substack{s \sim d^{\pi_\theta} \\
+a \sim \pi^*}}{\mathbb{E}}\left[-\frac{A^C_{\pi_{\theta_k}}(s, a)}{\lambda} \log Z_{\lambda, \nu}(s)-\frac{\partial \log Z_{\lambda, \nu}(s)}{\partial \nu} \log Z_{\lambda, \nu}(s)+\frac{\partial \log Z_{\lambda, \nu}(s)}{\partial \nu}\right] .
+\end{aligned}\end{split}\]</div>
+<p>Also:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}\label{FOCOPS:proof_C2_2}
+&amp;\frac{\partial Z_{\lambda, \nu}(s)}{\partial \nu} \\
+&amp;=\frac{\partial}{\partial \nu} \sum_a \pi_{\theta_k}(a \mid s) \exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right) \\
+&amp;=\sum_a-\pi_{\theta_k}(a \mid s) \frac{A^C_{\pi_{\theta_k}}(s, a)}{\lambda} \exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right) \\
+&amp;=\sum_a-\frac{A^C_{\pi_{\theta_k}}(s, a)}{\lambda} \frac{\pi_{\theta_k}(a \mid s)}{Z_{\lambda, \nu}(s)} \exp \left(\frac{1}{\lambda}\left(A_{\pi_{\theta_k}}(s, a)-\nu A^C_{\pi_{\theta_k}}(s, a)\right)\right) Z_{\lambda, \nu}(s) \\
+&amp;=-\frac{Z_{\lambda, \nu}(s)}{\lambda} \underset{a \sim \pi^*(\cdot \mid s)}{\mathbb{E}}\left[A^C_{\pi_{\theta_k}}(s, a)\right] .
+\end{aligned}\end{split}\]</div>
+<p>Therefore:</p>
+<div class="math notranslate nohighlight">
+\[\label{FOCOPS:proof_C2_3}
+\frac{\partial \log Z_{\lambda, \nu}(s)}{\partial \nu}=\frac{\partial Z_{\lambda, \nu}(s)}{\partial \nu} \frac{1}{Z_{\lambda, \nu}(s)}=-\frac{1}{\lambda} \underset{a \sim \pi^*(\cdot \mid s)}{\mathbb{E}}\left[A^C_{\pi_{\theta_k}}(s, a)\right] .\]</div>
+<p>Plugging <a class="reference external" href="#FOCOPS:proof_C2_3">[FOCOPS:proof_C2_3]</a> into the last
+equality in <a class="reference external" href="#FOCOPS:proof_C2_1">[FOCOPS:proof_C2_1]</a> gives us:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\label{FOCOPS:proof_C2_4}
+\begin{aligned}
+&amp;\frac{\partial}{\partial \nu} \underset{\substack{s \sim d^{\pi_\theta} \\
+a \sim \pi^*}}{\mathbb{E}}\left[\log Z_{\lambda, \nu}(s)\right] \\
+&amp;=\underset{\substack{s \sim d^{\pi^*} \\
+a \sim \pi^*}}{\mathbb{E}}\left[-\frac{A^C_{\pi_{\theta_k}}(s, a)}{\lambda} \log Z_{\lambda, \nu}(s)+\frac{A^C_{\pi_{\theta_k}}(s, a)}{\lambda} \log Z_{\lambda, \nu}(s)-\frac{1}{\lambda} A^C_{\pi_{\theta_k}}(s, a)\right] \\
+&amp;=-\frac{1}{\lambda} \underset{\substack{s \sim d^{\pi_{\theta_k}} \\
+a \sim \pi^*}}{\mathbb{E}}\left[A^C_{\pi_{\theta_k}}(s, a)\right] .
+\end{aligned}\end{split}\]</div>
+<p>Combining <a class="reference external" href="#FOCOPS:proof_C2_4">[FOCOPS:proof_C2_4]</a> with the
+derivatives of the affine term gives us the final desired result.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rcpo_docs.html" class="btn btn-neutral float-left" title="Reward Constrained Policy Optimization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pcpo_docs.html" class="btn btn-neutral float-right" title="Projection-Based Constrained Policy Optimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, OmniSafe Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

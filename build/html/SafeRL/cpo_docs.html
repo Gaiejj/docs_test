@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html  lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+      <title>Constrained Policy Optimization</title>
+    
+          <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/theme.css " type="text/css" />
+          <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+          <link rel="stylesheet" href="../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" type="text/css" />
+      
+      <!-- sphinx script_files -->
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+        <script src="../_static/design-tabs.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+      
+      <!-- bundled in js (rollup iife) -->
+      <!-- <script src="../_static/theme-vendors.js"></script> -->
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="Projection-Based Constrained Policy Optimization" href="pcpo_docs.html" />
+  <link rel="prev" title="Proximal Policy Optimization" href="../BaseRL/ppo_docs.html" /> 
+  </head>
+
+  <body>
+    <div id="app">
+    <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">OmniSafe</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Documentation
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Base_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link  router-link-active">
+         Safe_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         OmniSafe
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         MISC
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Documentation
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         Base_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link  router-link-active">
+         Safe_RL
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         OmniSafe
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#"
+         class="nav-link ">
+         MISC
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">Documentation</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../Documentation/Introduction.html" class="reference internal ">Introudction</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../Documentation/Installation.html" class="reference internal ">Installation</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">Base_RL</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/mdp_docs.html" class="reference internal ">Markov Decision Process</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/pg_docs.html" class="reference internal ">Policy Gradient</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/npg_docs.html" class="reference internal ">Natural Policy Gradient</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/trpo_docs.html" class="reference internal ">Trust Region Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../BaseRL/ppo_docs.html" class="reference internal ">Proximal Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">Safe_RL</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 current">
+            
+              <a href="#" class="reference internal current">Constrained Policy Optimization</a>
+            
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#quick-facts" class="reference internal">Quick Facts</a></li>
+                
+                  <li class="toctree-l2"><a href="#cpo-theorem" class="reference internal">CPO Theorem</a></li>
+                
+                  <li class="toctree-l2"><a href="#practical-implementation" class="reference internal">Practical Implementation</a></li>
+                
+                  <li class="toctree-l2"><a href="#cards-clickable" class="reference internal">Appendix</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="pcpo_docs.html" class="reference internal ">Projection-Based Constrained Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="rcpo_docs.html" class="reference internal ">Reward Constrained Policy Optimization</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="focops_docs.html" class="reference internal ">First Order Constrained Optimization in Policy Space</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="lag.html" class="reference internal ">TRPO-Lagrangian and PPO-Lagrangian</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">OmniSafe</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/logger.html" class="reference internal ">OmniSafe Logger</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/multi_process.html" class="reference internal ">OmniSafe Mult-Processing</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/run_utils.html" class="reference internal ">OmniSafe Utils</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../OmniSafe/visualization.html" class="reference internal ">OmniSafe Visualization</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#">MISC</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../MISC/Changelog.html" class="reference internal ">Changelog</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+    <li>Constrained Policy Optimization</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="../BaseRL/ppo_docs.html"
+       title="previous chapter">← Proximal Policy Optimization</a>
+  </li>
+  <li class="next">
+    <a href="pcpo_docs.html"
+       title="next chapter">Projection-Based Constrained Policy Optimization →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main" v-pre>
+            
+  <section id="constrained-policy-optimization">
+<h1><a class="toc-backref" href="#id6">Constrained Policy Optimization</a><a class="headerlink" href="#constrained-policy-optimization" title="Permalink to this heading">¶</a></h1>
+<section id="quick-facts">
+<h2><a class="toc-backref" href="#id7">Quick Facts</a><a class="headerlink" href="#quick-facts" title="Permalink to this heading">¶</a></h2>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-body sd-font-weight-bold docutils">
+<ol class="arabic simple">
+<li><p class="sd-card-text">CPO is an <span class="sd-sphinx-override sd-badge sd-outline-success sd-text-success">on-policy</span> algorithm.</p></li>
+<li><p class="sd-card-text">CPO can be used for environments with both <span class="sd-sphinx-override sd-badge sd-outline-success sd-text-success">discrete</span> and <span class="sd-sphinx-override sd-badge sd-outline-success sd-text-success">continuous</span> action spaces.</p></li>
+<li><p class="sd-card-text">CPO can be thought of as being <span class="sd-sphinx-override sd-badge sd-outline-success sd-text-success">TRPO in SafeRL areas</span> .</p></li>
+<li><p class="sd-card-text">The OmniSafe implementation of CPO support <span class="sd-sphinx-override sd-badge sd-outline-success sd-text-success">parallelization</span>.</p></li>
+</ol>
+</div>
+</div>
+<hr class="docutils" />
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title">Table of Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#constrained-policy-optimization" id="id6">Constrained Policy Optimization</a></p>
+<ul>
+<li><p><a class="reference internal" href="#quick-facts" id="id7">Quick Facts</a></p></li>
+<li><p><a class="reference internal" href="#cpo-theorem" id="id8">CPO Theorem</a></p>
+<ul>
+<li><p><a class="reference internal" href="#background" id="id9">Background</a></p></li>
+<li><p><a class="reference internal" href="#optimization-objective" id="id10">Optimization Objective</a></p></li>
+<li><p><a class="reference internal" href="#policy-performance-bounds" id="id11">Policy Performance Bounds</a></p></li>
+<li><p><a class="reference internal" href="#trust-region-methods" id="id12">Trust Region Methods</a></p></li>
+<li><p><a class="reference internal" href="#worst-performance-of-cpo-update" id="id13">Worst Performance Of CPO Update</a></p></li>
+<li><p><a class="reference internal" href="#summary" id="id14">Summary</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#practical-implementation" id="id15">Practical Implementation</a></p>
+<ul>
+<li><p><a class="reference internal" href="#approximately-solving-the-cpo-update" id="id16">Approximately Solving the CPO Update</a></p></li>
+<li><p><a class="reference internal" href="#feasibility" id="id17">Feasibility</a></p></li>
+<li><p><a class="reference internal" href="#tightening-constraints-via-cost-shaping" id="id18">Tightening Constraints via Cost Shaping</a></p></li>
+<li><p><a class="reference internal" href="#code-with-omnisafe" id="id19">Code with OmniSafe</a></p></li>
+<li><p><a class="reference internal" href="#reference" id="id20">Reference</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#cards-clickable" id="id21">Appendix</a></p>
+<ul>
+<li><p><a class="reference internal" href="#detailed-proof-for-performance-bound" id="id22">Detailed Proof for Performance Bound</a></p></li>
+<li><p><a class="reference internal" href="#proof-of-analytical-solution-to-lqclp" id="id23">Proof of Analytical Solution to LQCLP</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="cpo-theorem">
+<h2><a class="toc-backref" href="#id8">CPO Theorem</a><a class="headerlink" href="#cpo-theorem" title="Permalink to this heading">¶</a></h2>
+<section id="background">
+<h3><a class="toc-backref" href="#id9">Background</a><a class="headerlink" href="#background" title="Permalink to this heading">¶</a></h3>
+<p><strong>Constrained policy optimization (CPO)</strong> is a
+policy search algorithm for constrained reinforcement learning with
+guarantees for near-constraint satisfaction at each iteration. Motivated
+by TRPO( <a class="reference internal" href="../BaseRL/trpo_docs.html"><span class="doc">Trust Region Policy Optimization</span></a>).
+CPO develops surrogate functions to be
+good local approximations for objectives and constraints and easy to
+estimate using samples from current policy. Moreover, it provides
+tighter bounds for policy search using trust regions.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>CPO is the <strong>first general-purpose policy search algorithm</strong> for safe
+reinforcement learning with guarantees for near-constraint satisfaction
+at each iteration.</p>
+</div>
+<p>CPO trains neural network policies for
+high-dimensional control while making guarantees about policy behavior
+throughout training. CPO aims to provide an approach for policy search
+in continuous CMDP. It uses the result from TRPO and NPG to derive a policy improvement step
+that guarantees both an increase in reward and satisfaction of
+constraints. Although CPO is slightly inferior in performance, it
+provides a solid theoretical foundation for solving constrained
+optimization problems in the field of safe reinforcement learning.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>CPO is very complex in terms of implementation, but omnisafe provides a
+highly readable code implementation to help you get up to speed quickly</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="optimization-objective">
+<h3><a class="toc-backref" href="#id10">Optimization Objective</a><a class="headerlink" href="#optimization-objective" title="Permalink to this heading">¶</a></h3>
+<p>In the previous chapters, we introduced that TRPO solves the following
+optimization problems:</p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+   &amp;\pi_{k+1}&amp;=\arg\max_{\pi \in \Pi_{\boldsymbol{\theta}}}J(\pi)\\
+   \text{s.t.}~~&amp;D(\pi,\pi_k)&amp;\le\delta\tag{1}
+\end{eqnarray}</div><p>where <span class="math notranslate nohighlight">\(\Pi_{\boldsymbol{\theta}} \subseteq \Pi\)</span> denotes the set of
+parametrized policies with parameters <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, and <span class="math notranslate nohighlight">\(D\)</span>
+is some distance measure. In local policy search, we additionally
+require policy iterates to be feasible for the CMDP, so instead of
+optimizing over <span class="math notranslate nohighlight">\(\Pi_{\boldsymbol{\theta}}\)</span>, CPO optimizes over
+<span class="math notranslate nohighlight">\(\Pi_{\boldsymbol{\theta}} \cap \Pi_{C}\)</span>,</p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+    &amp;\pi_{k+1}&amp; = \arg\max_{\pi \in \Pi_{\boldsymbol{\theta}}}J(\pi)\\
+   \text{s.t.}~~ &amp;D(\pi,\pi_k)&amp;\le\delta\tag{2}\\
+    &amp;J^{C_i}(\pi)&amp;\le d_i\quad i=1,...m
+\end{eqnarray}</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This update is difficult to implement because it requires evaluating the
+constraint functions to determine whether a proposed policy <span class="math notranslate nohighlight">\(\pi\)</span>
+is feasible.</p>
+</div>
+<p>CPO develops a principled approximation with a particular
+choice of <span class="math notranslate nohighlight">\(D\)</span>, where the objective and constraints are replaced
+with surrogate functions. CPO proposes that with those surrogates, the
+update’s worst-case performance and worst-case constraint violation can
+be bounded with values that depend on a hyperparameter of the algorithm.</p>
+</section>
+<hr class="docutils" />
+<section id="policy-performance-bounds">
+<h3><a class="toc-backref" href="#id11">Policy Performance Bounds</a><a class="headerlink" href="#policy-performance-bounds" title="Permalink to this heading">¶</a></h3>
+<p>CPO presents the theoretical foundation for its approach, a new bound on
+the difference in returns between two arbitrary policies. The following
+<span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Theorem 1</span> connects the difference in returns (or constraint costs) between
+two arbitrary policies to an average divergence between them.</p>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-card-hover sd-outline-success sd-border-3 sd-rounded-3 docutils" id="theorem-1">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Theorem 1 (Difference between two arbitrary policies)</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text"><strong>For any function</strong> <span class="math notranslate nohighlight">\(f : S \rightarrow \mathbb{R}\)</span> and any policies <span class="math notranslate nohighlight">\(\pi\)</span> and <span class="math notranslate nohighlight">\(\pi'\)</span>, define <span class="math notranslate nohighlight">\(\delta_f(s,a,s') \doteq R(s,a,s') + \gamma f(s')-f(s)\)</span>,</p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+   \epsilon_f^{\pi'} &amp;\doteq&amp; \max_s \left|\mathbb{E}_{a\sim\pi'~,s'\sim P }\left[\delta_f(s,a,s')\right] \right|\tag{3}\\
+   J_{\pi, f}\left(\pi'\right) &amp;\doteq&amp; \mathbb{E}_{\tau \sim \pi}\left[\left(\frac{\pi'(a | s)}{\pi(a|s)}-1\right)\delta_f\left(s, a, s'\right)\right]\tag{4} \\
+   D_{\pi, f}^{\pm}\left(\pi^{\prime}\right) &amp;\doteq&amp; \frac{L_{\pi, f}\left(\pi' \right)}{1-\gamma} \pm \frac{2 \gamma \epsilon_f^{\pi'}}{(1-\gamma)^2} \mathbb{E}_{s \sim d^\pi}\left[D_{T V}\left(\pi^{\prime} \| \pi\right)[s]\right]\tag{5}
+\end{eqnarray}</div><p class="sd-card-text">where <span class="math notranslate nohighlight">\(D_{T V}\left(\pi'|| \pi\right)[s]=\frac{1}{2} \sum_a\left|\pi'(a|s)-\pi(a|s)\right|\)</span> is the total variational divergence between action distributions at <span class="math notranslate nohighlight">\(s\)</span>. The conclusion is as follows:</p>
+<div class="math notranslate nohighlight">
+\[D_{\pi, f}^{+}\left(\pi'\right) \geq J\left(\pi'\right)-J(\pi) \geq D_{\pi, f}^{-}\left(\pi'\right)\tag{6}\]</div>
+<p class="sd-card-text">Furthermore, the bounds are tight (when <span class="math notranslate nohighlight">\(\pi=\pi^{\prime}\)</span>, all
+three expressions are identically zero).</p>
+</div>
+<div class="sd-card-footer sd-font-weight-bold docutils">
+<p class="sd-card-text">The proof of the <a class="sd-sphinx-override sd-badge sd-outline-info sd-text-info reference internal" href="#theorem-1"><span class="std std-ref">Theorem 1</span></a> can be seen in the <a class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info reference internal" href="#appendix"><span class="std std-ref">Appendix</span></a>, click on this <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">card</span> to jump to view.</p>
+</div>
+<a class="sd-stretched-link reference internal" href="#cards-clickable"><span class="std std-ref"></span></a></div>
+<p>By picking <span class="math notranslate nohighlight">\(f=V_\pi\)</span>, we obtain a <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Corollary 1</span>, <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Corollary 2</span>, <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Corollary 3</span> below:</p>
+<div class="sd-tab-set docutils" id="corollary-2">
+<span id="corollary-1"></span><input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-0">
+Corollary 1</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-info sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Corollary 1</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">For any policies <span class="math notranslate nohighlight">\(\pi'\)</span>, <span class="math notranslate nohighlight">\(\pi\)</span>, with
+<span class="math notranslate nohighlight">\(\epsilon_{\pi'}=\max _s|\mathbb{E}_{a \sim \pi'}[A_\pi(s, a)]|\)</span></p>
+<p class="sd-card-text">The following bound holds:</p>
+<div class="math notranslate nohighlight">
+\[J^R\left(\pi^{\prime}\right)-J^R(\pi) \geq \frac{1}{1-\gamma} \mathbb{E}_{s \sim d^\pi\,a \sim \pi'}\left[A^R_\pi(s, a)-\frac{2 \gamma \epsilon_{\pi'}}{1-\gamma} D_{T V}\left(\pi' \| \pi\right)[s]\right]\tag{7}\]</div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-1">
+Corollary 2</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-info sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Corollary 2</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">For any policies <span class="math notranslate nohighlight">\(\pi'\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span>,
+with <span class="math notranslate nohighlight">\(\epsilon^{C_i}_{\pi'}=\max _s|E_{a \sim \pi^{\prime}}[A^{C_i}_\pi(s, a)]|\)</span></p>
+<p class="sd-card-text">the following bound holds:</p>
+<div class="math notranslate nohighlight">
+\[J^{C_i}\left(\pi^{\prime}\right)-J^{C_i}(\pi) \geq \frac{1}{1-\gamma} \mathbb{E}_{s \sim d^\pi a \sim \pi'}\left[A^{C_i}_\pi(s, a)-\frac{2 \gamma \epsilon^{C_i}_{\pi'}}{1-\gamma} D_{T V}\left(\pi' \| \pi\right)[s]\right]\tag{8}\]</div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-2">
+Corollary 3</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-info sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Corollary 3</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Trust region methods prefer to constrain the KL-divergence between policies, so CPO use Pinsker’s inequality to connect the <span class="math notranslate nohighlight">\(D_{TV}\)</span> with <span class="math notranslate nohighlight">\(D_{KL}\)</span></p>
+<div class="math notranslate nohighlight">
+\[D_{TV}(p \| q) \leq \sqrt{D_{KL}(p \| q) / 2}\tag{9}\]</div>
+<p class="sd-card-text">Combining this with Jensen’s inequality, we obtain our final <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Corollary 3</span> :
+In bound <a class="sd-sphinx-override sd-badge sd-outline-info sd-text-info reference internal" href="#theorem-1"><span class="std std-ref">Theorem 1</span></a> , <a class="sd-sphinx-override sd-badge sd-outline-info sd-text-info reference internal" href="#corollary-1"><span class="std std-ref">Corollary 1</span></a>, <a class="sd-sphinx-override sd-badge sd-outline-info sd-text-info reference internal" href="#corollary-2"><span class="std std-ref">Corollary 2</span></a>,
+make the substitution:</p>
+<div class="math notranslate nohighlight">
+\[\mathbb{E}_{s \sim d^\pi}\left[D_{T V}\left(\pi'|| \pi\right)[s]\right] \rightarrow \sqrt{\frac{1}{2} \mathbb{E}_{s \sim d^\pi}\left[D_{K L}\left(\pi^{\prime} \| \pi\right)[s]\right]}\tag{10}\]</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="trust-region-methods">
+<h3><a class="toc-backref" href="#id12">Trust Region Methods</a><a class="headerlink" href="#trust-region-methods" title="Permalink to this heading">¶</a></h3>
+<p>For parameterized stationary policy, trust region algorithms for
+reinforcement learning have policy updates of the following form:</p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+   &amp;\boldsymbol{\theta}_{k+1}&amp;=\arg \max _{\boldsymbol{\theta} \in \Theta} \mathbb{E}_{\substack{s \sim d^{\boldsymbol{\theta}_k}\\ a \sim \boldsymbol{\theta}}}[A_{\boldsymbol{\theta}_k}(s, a)]\\
+   \text{s.t.} ~~~ &amp;\bar{D}_{K L}&amp;\left(\pi \| \pi_k\right) \le \delta\tag{11}
+\end{eqnarray}</div><p>where
+<span class="math notranslate nohighlight">\(\bar{D}_{K L}(\pi \| \pi_k)=\mathbb{E}_{s \sim \pi_k}[D_{K L}(\pi \| \pi_k)[s]]\)</span>
+and <span class="math notranslate nohighlight">\(\delta \ge 0\)</span> is the step size. The set
+<span class="math notranslate nohighlight">\(\left\{\pi_{\boldsymbol{\theta}} \in \Pi_{\boldsymbol{\theta}}: \bar{D}_{K L}\left(\pi \| \pi'\right) \leq \delta\right\}\)</span>
+is called trust region. The success motivation for this update is that
+it approximates optimizing the lower bound on policy performance given
+in <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Corollary 1</span>, which would guarantee
+monotonic performance improvements.</p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+   &amp;\pi_{k+1}&amp;=\arg \max _{\pi \in \Pi_{\boldsymbol{\theta}}} \mathbb{E}_{\substack{s \sim d_{\pi_k}\\a \sim \pi}}[A_{\pi_k}(s, a)]\\
+   \text{s.t.} \quad &amp;J^{C_i}&amp;\left(\pi_k\right) \leq d_i-\frac{1}{1-\gamma} \mathbb{E}_{\substack{s \sim d_{\pi_k} \\ a \sim \pi}}\left[A^{C_i}_{\pi_k}(s, a)\right] \quad \forall i \tag{12} \\
+   &amp;\bar{D}_{K L}&amp;\left(\pi \| \pi_k\right) \leq \delta
+\end{eqnarray}</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In a word, CPO proposes the final optimization problem, which uses a trust region
+instead of penalties on policy divergence to enable larger step sizes</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="worst-performance-of-cpo-update">
+<h3><a class="toc-backref" href="#id13">Worst Performance Of CPO Update</a><a class="headerlink" href="#worst-performance-of-cpo-update" title="Permalink to this heading">¶</a></h3>
+<p>Here we will introduce the propositions proposed by the CPO, one
+describes the worst-case performance degradation guarantee that depends
+on <span class="math notranslate nohighlight">\(\delta\)</span>, and the other discusses the worst-case constraint
+violation in the CPO update.</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-3" name="sd-tab-set-1" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-3">
+Proposition 1</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Trust Region Update Performance</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Suppose <span class="math notranslate nohighlight">\(\pi_k, \pi_{k+1}\)</span> are related by <span class="math notranslate nohighlight">\((11)\)</span>, and that <span class="math notranslate nohighlight">\(\pi_k \in \Pi_{\boldsymbol{\theta}}\)</span>. A lower bound on the policy
+performance difference between <span class="math notranslate nohighlight">\(\pi_k\)</span> and <span class="math notranslate nohighlight">\(\pi_{k+1}\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+   J^{R}\left(\pi_{k+1}\right)-J^{R}(\pi_{k}) \geq \frac{-\sqrt{2 \delta} \gamma \epsilon^{\pi_{k+1}}}{(1-\gamma)^2}
+\end{aligned}\]</div>
+<p class="sd-card-text">where <span class="math notranslate nohighlight">\(\epsilon_{\pi_{k+1}}=\max_s\left|\mathbb{E}_{a \sim \pi_{k+1}}\left[A_{\pi_k}(s, a)\right]\right|\)</span>.</p>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-4" name="sd-tab-set-1" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-4">
+Proposition 2</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">CPO Update Worst-Case Constraint Violation</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Suppose <span class="math notranslate nohighlight">\(\pi_k, \pi_{k+1}\)</span> are related by <span class="math notranslate nohighlight">\((11)\)</span>, and that <span class="math notranslate nohighlight">\(\pi_k \in \Pi_{\boldsymbol{\theta}}\)</span>. An upper bound on the
+<span class="math notranslate nohighlight">\(C_i\)</span>-return of <span class="math notranslate nohighlight">\(\pi_{k+1}\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+J^{C_i}\left(\pi_{k+1}\right) \leq d_i+\frac{\sqrt{2 \delta} \gamma \epsilon^{C_i}_{\pi_{k+1}}}{(1-\gamma)^2}
+\end{aligned}\]</div>
+<p class="sd-card-text">where <span class="math notranslate nohighlight">\(\epsilon^{C_i}_{\pi_{k+1}}=\max _s\left|\mathbb{E}_{a \sim \pi_{k+1}}\left[A^{C_i}_{\pi_k}(s, a)\right]\right|\)</span></p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h3><a class="toc-backref" href="#id14">Summary</a><a class="headerlink" href="#summary" title="Permalink to this heading">¶</a></h3>
+<p>We mainly introduce the essential inequalities in CPO. Based on those
+inequalities, CPO presents optimization problems that ultimately need to
+be solved and propose two proposition about the worst case in the CPO
+update. Next section, we will discuss how to solve this problem
+practically. It is expected that you may be confused when you first read
+these theoretical derivation processes, and we have given detailed proof
+of the above formulas in the appendix, which we believe you can
+understand by reading them a few times.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="practical-implementation">
+<h2><a class="toc-backref" href="#id15">Practical Implementation</a><a class="headerlink" href="#practical-implementation" title="Permalink to this heading">¶</a></h2>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
+<div class="sd-col sd-d-flex-row sd-col-12 sd-col-xs-12 sd-col-sm-4 sd-col-md-4 sd-col-lg-6 sd-font-weight-bold docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Overview</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">In this section, we show how CPO implements an approximation to the
+update <span class="math notranslate nohighlight">\((12)\)</span> that can be efficiently
+computed, even when optimizing policies with thousands of parameters. To
+address the issue of approximation and sampling errors that arise in
+practice and the potential violations described by Proposition 2,
+CPO proposes to tighten the constraints by constraining the upper bounds
+of the extra costs instead of the extra costs themselves.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row sd-col-12 sd-col-xs-12 sd-col-sm-8 sd-col-md-8 sd-col-lg-6 sd-font-weight-bold sd-fs-6 docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Navigation</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Approximately Solving the CPO Update</p>
+<p class="sd-card-text"><a class="sd-sphinx-override sd-badge sd-outline-success sd-text-success reference internal" href="#approximately-solving-the-cpo-update"><span class="std std-ref">Click here</span></a></p>
+<p class="sd-card-text">Feasibility</p>
+<p class="sd-card-text"><a class="sd-sphinx-override sd-badge sd-outline-success sd-text-success reference internal" href="#feasibility"><span class="std std-ref">Click here</span></a></p>
+<p class="sd-card-text">Tightening Constraints via Cost Shaping</p>
+<p class="sd-card-text"><a class="sd-sphinx-override sd-badge sd-outline-success sd-text-success reference internal" href="#tightening-constraints-via-cost-shaping"><span class="std std-ref">Click here</span></a></p>
+<p class="sd-card-text">Code With OmniSafe</p>
+<p class="sd-card-text"><a class="sd-sphinx-override sd-badge sd-outline-success sd-text-success reference internal" href="#code-with-omnisafe"><span class="std std-ref">Click here</span></a></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<section id="approximately-solving-the-cpo-update">
+<span id="id1"></span><h3><a class="toc-backref" href="#id16">Approximately Solving the CPO Update</a><a class="headerlink" href="#approximately-solving-the-cpo-update" title="Permalink to this heading">¶</a></h3>
+<p>For policies with high-dimensional parameter spaces like neural
+networks, <span class="math notranslate nohighlight">\((12)\)</span> can be impractical to
+solve directly because of the computational cost.</p>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>However, for small
+step sizes <span class="math notranslate nohighlight">\(\delta\)</span>, the objective and cost constraints are
+well-approximated by linearizing around <span class="math notranslate nohighlight">\(\pi_k\)</span>, and the
+KL-Divergence constraint is well-approximated by second-order expansion.</p>
+</div>
+<p>Denoting the gradient of the objective as <span class="math notranslate nohighlight">\(g\)</span>, the gradient of
+constraint <span class="math notranslate nohighlight">\(i\)</span> as <span class="math notranslate nohighlight">\(b_i\)</span>, the Hessian of the KL-divergence as
+<span class="math notranslate nohighlight">\(H\)</span>, and defining <span class="math notranslate nohighlight">\(c_i=J^{C_i}\left(\pi_k\right)-d_i\)</span>, the
+approximation to <span class="math notranslate nohighlight">\((12)\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+   &amp;\boldsymbol{\theta}_{k+1}&amp;=\arg \max _{\boldsymbol{\theta}} g^T\left(\boldsymbol{\theta}-\boldsymbol{\theta}_k\right)\\
+   \text{s.t.}~~  &amp;c_i&amp;+b_i^T\left(\boldsymbol{\theta}-\boldsymbol{\theta}_k\right) \leq 0 ~~~ i=1, \ldots m \tag{13}\\
+   &amp;\frac{1}{2}&amp;\left(\boldsymbol{\theta}-\boldsymbol{\theta}_k\right)^T H\left(\boldsymbol{\theta}-\boldsymbol{\theta}_k\right) \leq \delta
+\end{eqnarray}</div><p>With <span class="math notranslate nohighlight">\(B=\left[b_1, \ldots, b_m\right]\)</span> and
+<span class="math notranslate nohighlight">\(c=\left[c_1, \ldots, c_m\right]^T\)</span>, a dual to
+<span class="math notranslate nohighlight">\((13)\)</span> can be express as:</p>
+<div class="math notranslate nohighlight">
+\[\max_{\lambda \geq 0, \nu \geq 0} \frac{-1}{2 \lambda}\left(g^T H^{-1} g-2 r^T v+v^T S v\right)+v^T c-\frac{\lambda \delta}{2}\]</div>
+<p>where <span class="math notranslate nohighlight">\(r=g^T H^{-1} B, S=B^T H^{-1} B\)</span>. If <span class="math notranslate nohighlight">\(\lambda^*, v^*\)</span>
+are a solution to the dual, the solution to the primal is</p>
+<div class="math notranslate nohighlight">
+\[{\boldsymbol{\theta}}^*={\boldsymbol{\theta}}_k+\frac{1}{\lambda^*} H^{-1}\left(g-B v^*\right)\tag{14}\]</div>
+<p>In a word, CPO solves the dual for <span class="math notranslate nohighlight">\(\lambda^*, \nu^*\)</span> and uses it
+to propose the policy update <span class="math notranslate nohighlight">\((14)\)</span> ,
+thus solving <span class="math notranslate nohighlight">\((12)\)</span> in a particular way.
+In the experiment, CPO also uses two tricks to promise the update’s
+performance.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Because of the approximation error, the proposed update may
+not satisfy the constraints in <span class="math notranslate nohighlight">\((12)\)</span>; a backtracking line search is used to ensure surrogate constraint satisfaction.</p>
+</div>
+<p>For high-dimensional policies, it is impractically
+expensive to invert the FIM. This poses a challenge for computing
+<span class="math notranslate nohighlight">\(\mathrm{H}^{-1} \mathrm{~g}\)</span> and <span class="math notranslate nohighlight">\(H^{-1} b\)</span>, which appear
+in the dual. Like TRPO, CPO computes them approximately using the
+conjugate gradient method.</p>
+<hr class="docutils" />
+</section>
+<section id="feasibility">
+<span id="id2"></span><h3><a class="toc-backref" href="#id17">Feasibility</a><a class="headerlink" href="#feasibility" title="Permalink to this heading">¶</a></h3>
+<p>Due to approximation errors, CPO may take a bad step and produce an
+infeasible iterate <span class="math notranslate nohighlight">\(\pi_k\)</span>. CPO recovers the update from an
+infeasible case by proposing an update to decrease the constraint value
+purely:</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\theta}^*=\boldsymbol{\theta}_k-\sqrt{\frac{2 \delta}{b^T H^{-1} b}} H^{-1} b\tag{15}\]</div>
+<p>As before, this is followed by a line search. This approach is
+principled in that it uses the limiting search direction as the
+intersection of the trust region and the constraint region shrinks to
+zero.</p>
+<hr class="docutils" />
+</section>
+<section id="tightening-constraints-via-cost-shaping">
+<span id="id3"></span><h3><a class="toc-backref" href="#id18">Tightening Constraints via Cost Shaping</a><a class="headerlink" href="#tightening-constraints-via-cost-shaping" title="Permalink to this heading">¶</a></h3>
+<p>To build a factor of safety into the algorithm to minimize the chance of
+constraint violations, CPO chooses to constrain upper bounds on the
+original constraints, <span class="math notranslate nohighlight">\(C_i^{+}\)</span>, instead of the original
+constraints themselves. CPO does this by cost shaping:</p>
+<div class="math notranslate nohighlight">
+\[C_i^{+}\left(s, a, s^{\prime}\right)=C_i\left(s, a, s^{\prime}\right)+\triangle_i\left(s, a, s^{\prime}\right)\tag{16}\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(\delta_i: S \times A \times S \rightarrow R_{+}\)</span> correlates in
+some useful way with <span class="math notranslate nohighlight">\(C_i\)</span>. Because CPO has only one constraint,
+it partitions states into safe and unsafe states, and the agent suffers
+a safety cost of 1 for being in an unsafe state. CPO chooses
+<span class="math notranslate nohighlight">\(\triangle\)</span> to be the probability of entering an unsafe state
+within a fixed time horizon, according to a learned model that is
+updated at each iteration. This choice confers the additional benefit of
+smoothing out sparse constraints.</p>
+<hr class="docutils" />
+</section>
+<section id="code-with-omnisafe">
+<span id="id4"></span><h3><a class="toc-backref" href="#id19">Code with OmniSafe</a><a class="headerlink" href="#code-with-omnisafe" title="Permalink to this heading">¶</a></h3>
+<section id="quick-start">
+<h4>Quick start<a class="headerlink" href="#quick-start" title="Permalink to this heading">¶</a></h4>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Run CPO in Omnisafe</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Here are 3 ways to run CPO in OmniSafe:</p>
+<ul class="simple">
+<li><p class="sd-card-text">Run Agent from preset yaml file</p></li>
+<li><p class="sd-card-text">Run Agent from custom config dict</p></li>
+<li><p class="sd-card-text">Run Agent from custom terminal config</p></li>
+</ul>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-5" name="sd-tab-set-2" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-5">
+Yaml file style</label><div class="sd-tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span> <span class="kn">import</span> <span class="nn">omnisafe</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span> <span class="n">env</span> <span class="o">=</span> <span class="n">omnisafe</span><span class="o">.</span><span class="n">Env</span><span class="p">(</span><span class="s1">&#39;Hopper-v4&#39;</span><span class="p">)</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span> <span class="n">agent</span> <span class="o">=</span> <span class="n">omnisafe</span><span class="o">.</span><span class="n">Agent</span><span class="p">(</span><span class="s1">&#39;CPO&#39;</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+<span class="linenos"> 6</span> <span class="n">agent</span><span class="o">.</span><span class="n">learn</span><span class="p">()</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span> <span class="n">obs</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="linenos"> 9</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">):</span>
+<span class="linenos">10</span>    <span class="n">action</span><span class="p">,</span> <span class="n">_states</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">11</span>    <span class="n">obs</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">success</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+<span class="linenos">12</span>    <span class="n">env</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+<span class="linenos">13</span>    <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+<span class="linenos">14</span>       <span class="n">obs</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="linenos">15</span> <span class="n">env</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-6" name="sd-tab-set-2" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-6">
+Config dict style</label><div class="sd-tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span> <span class="kn">import</span> <span class="nn">omnisafe</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span> <span class="n">env</span> <span class="o">=</span> <span class="n">omnisafe</span><span class="o">.</span><span class="n">Env</span><span class="p">(</span><span class="s1">&#39;Hopper-v4&#39;</span><span class="p">)</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span> <span class="n">custom_dict</span> <span class="o">=</span> <span class="p">{</span>
+<span class="linenos"> 6</span>    <span class="s1">&#39;epochs&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="linenos"> 7</span>    <span class="s1">&#39;data_dir&#39;</span><span class="p">:</span> <span class="s1">&#39;./runs&#39;</span>
+<span class="linenos"> 8</span> <span class="p">}</span>
+<span class="linenos"> 9</span> <span class="n">agent</span> <span class="o">=</span> <span class="n">omnisafe</span><span class="o">.</span><span class="n">Agent</span><span class="p">(</span><span class="s1">&#39;CPO&#39;</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">custom_cfgs</span><span class="o">=</span><span class="n">custom_dict</span><span class="p">)</span>
+<span class="linenos">10</span> <span class="n">agent</span><span class="o">.</span><span class="n">learn</span><span class="p">()</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span> <span class="n">obs</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="linenos">13</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">):</span>
+<span class="linenos">14</span>    <span class="n">action</span><span class="p">,</span> <span class="n">_states</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">15</span>    <span class="n">obs</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">success</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+<span class="linenos">16</span>    <span class="n">env</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+<span class="linenos">17</span>    <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+<span class="linenos">18</span>       <span class="n">obs</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="linenos">19</span> <span class="n">env</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-7" name="sd-tab-set-2" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-7">
+Terminal config style</label><div class="sd-tab-content docutils">
+<p class="sd-card-text">We use <code class="docutils literal notranslate"><span class="pre">train_on_policy.py</span></code> as the entrance file. You can train the agent with
+CPO simply using <code class="docutils literal notranslate"><span class="pre">train_on_policy.py</span></code>, with arguments about CPO and enviroments
+does the training. For example, to run CPO in Hopper-v4, with
+4 cpu cores and seed 0, you can use the following command:</p>
+<div class="highlight-guess notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span> cd examples
+<span class="linenos">2</span> python train_on_policy.py --env-id Hopper-v4 --algo CPO --parallels 4 --seed 0.
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<p>Here are the documentation of CPO in PyTorch version.</p>
+</section>
+<section id="architecture-of-functions">
+<h4>Architecture of functions<a class="headerlink" href="#architecture-of-functions" title="Permalink to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.learn()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">env.roll_out()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.buf.get()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update_policy_net()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Fvp()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conjugate_gradients()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">search_step_size()</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update_cost_net()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update_value_net()</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.log()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="documentation-of-basic-functions">
+<h4>Documentation of basic functions<a class="headerlink" href="#documentation-of-basic-functions" title="Permalink to this heading">¶</a></h4>
+<div class="sd-sphinx-override sd-cards-carousel sd-card-cols-3 docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">env.roll_out()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Collect data and store to experience buffer.
+Parameters:</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">cpo.update()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Update actor, critic, running statistics</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">cpo.buf.get()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Call this at the end of an epoch to get all of the data from the buffer</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">cpo.update_policy_net()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Update policy network in 5 kinds of optimization case</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">cpo.update_value_net()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Update Critic network for estimating reward.</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">cpo.update_cost_net()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Update Critic network for estimating cost.</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">cpo.log()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Get the trainning log and show the performance of the algorithm</p>
+</div>
+</div>
+</div>
+</section>
+<section id="documentation-of-new-functions">
+<h4>Documentation of new functions<a class="headerlink" href="#documentation-of-new-functions" title="Permalink to this heading">¶</a></h4>
+<div class="sd-sphinx-override sd-cards-carousel sd-card-cols-3 docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Fvp()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Build the Hessian-vector product based on an approximation of the KL-Divergence.</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">conjugate_gradients()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Use conjugate gradient algorithm to make a fast calculating</p>
+</div>
+</div>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">search_step_size()</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Performs line-search to ensure constraint satisfaction for rewards and costs.</p>
+</div>
+</div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">¶</a></h4>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-8" name="sd-tab-set-3" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-8">
+Specific Parameters</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Specific Parameters</p>
+</div>
+<div class="sd-card-body docutils">
+<ul class="simple">
+<li><p class="sd-card-text">target_kl(float): Constraint for KL-distance to avoid too far gap</p></li>
+<li><p class="sd-card-text">cg_damping(float): parameter plays a role in building Hessian-vector</p></li>
+<li><p class="sd-card-text">cg_iters(int): Number of iterations of conjugate gradient to perform.</p></li>
+<li><p class="sd-card-text">cost_limit(float): Constraint for agent to avoid too much cost</p></li>
+</ul>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-9" name="sd-tab-set-3" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-9">
+Basic parameters</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Basic parameters</p>
+</div>
+<div class="sd-card-body docutils">
+<ul>
+<li><p class="sd-card-text">algo (string): The name of algorithm corresponding to current
+class, it does not actually affect any things which happen in the
+following.</p></li>
+<li><p class="sd-card-text">actor (string): The type of network in actor, discrete of
+continuous.</p></li>
+<li><p class="sd-card-text">model_cfgs (dictionary) : successrmation about actor and critic’s net
+work configuration,it originates from <code class="docutils literal notranslate"><span class="pre">algo.yaml</span></code> file to describe
+<code class="docutils literal notranslate"><span class="pre">hidden</span> <span class="pre">layers</span></code> , <code class="docutils literal notranslate"><span class="pre">activation</span> <span class="pre">function</span></code>, <code class="docutils literal notranslate"><span class="pre">shared_weights</span></code> and <code class="docutils literal notranslate"><span class="pre">weight_initialization_mode</span></code>.</p>
+<ul>
+<li><p class="sd-card-text">shared_weights (bool) : Use shared weights between actor and critic network or not.</p></li>
+<li><p class="sd-card-text">weight_initialization_mode (string) : The type of weight initialization method.</p></li>
+<li><p class="sd-card-text">pi (dictionary) : parameters for actor network <code class="docutils literal notranslate"><span class="pre">pi</span></code></p>
+<ul class="simple">
+<li><p class="sd-card-text">hidden_sizes:</p>
+<ul>
+<li><p class="sd-card-text">64</p></li>
+<li><p class="sd-card-text">64</p></li>
+</ul>
+</li>
+<li><p class="sd-card-text">activations: tanh</p></li>
+</ul>
+</li>
+<li><p class="sd-card-text">val (dictionary) parameters for critic network <code class="docutils literal notranslate"><span class="pre">v</span></code></p>
+<ul class="simple">
+<li><p class="sd-card-text">hidden_sizes:</p>
+<ul>
+<li><p class="sd-card-text">64</p></li>
+<li><p class="sd-card-text">64</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 8%" />
+<col style="width: 17%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p class="sd-card-text">Name</p></th>
+<th class="head"><p class="sd-card-text">Type</p></th>
+<th class="head"><p class="sd-card-text">Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">v</span></code></p></td>
+<td><p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">nn.Module</span></code></p></td>
+<td><p class="sd-card-text">Gives the current estimate of <strong>V</strong> for states in <code class="docutils literal notranslate"><span class="pre">s</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">pi</span></code></p></td>
+<td><p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">nn.Module</span></code></p></td>
+<td><p class="sd-card-text">Deterministically or continuously computes an action from the agent,</p>
+<p class="sd-card-text">conditioned on states in <code class="docutils literal notranslate"><span class="pre">s</span></code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul class="simple">
+<li><p class="sd-card-text">activations: tanh</p></li>
+<li><p class="sd-card-text">env_id (string): The name of environment we want to roll out.</p></li>
+<li><p class="sd-card-text">seed (int): Define the seed of experiments.</p></li>
+<li><p class="sd-card-text">parallel (int): Define the seed of experiments.</p></li>
+<li><p class="sd-card-text">epochs (int): The number of epochs we want to roll out.</p></li>
+<li><p class="sd-card-text">steps_per_epoch (int):The number of time steps per epoch.</p></li>
+<li><p class="sd-card-text">pi_iters (int): The number of iteration when we update actor network per mini batch.</p></li>
+<li><p class="sd-card-text">critic_iters (int): The number of iteration when we update critic network per mini batch.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-10" name="sd-tab-set-3" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-10">
+Optional parameters</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Optional parameters</p>
+</div>
+<div class="sd-card-body docutils">
+<ul class="simple">
+<li><p class="sd-card-text">use_cost_critic (bool): Use cost value function or not.</p></li>
+<li><p class="sd-card-text">linear_lr_decay (bool): Use linear learning rate decay or not.</p></li>
+<li><p class="sd-card-text">exploration_noise_anneal (bool): Use exploration noise anneal or not.</p></li>
+<li><p class="sd-card-text">reward_penalty (bool): Use cost to penalize reward or not.</p></li>
+<li><p class="sd-card-text">kl_early_stopping (bool): Use KL early stopping or not.</p></li>
+<li><p class="sd-card-text">max_grad_norm (float): Use maximum gradient normalization or not.</p></li>
+<li><p class="sd-card-text">scale_rewards (bool): Use reward scaling or not.</p></li>
+</ul>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-11" name="sd-tab-set-3" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-11">
+Buffer parameters</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 sd-font-weight-bold docutils">
+<div class="sd-card-header sd-bg-success sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Buffer parameters</p>
+</div>
+<div class="sd-card-body docutils">
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p class="sd-card-text">Name</p></th>
+<th class="head"><p class="sd-card-text">Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">Buffer</span></code></p></td>
+<td><p class="sd-card-text">A buffer for storing trajectories experienced by an agent interacting</p>
+<p class="sd-card-text">with the environment, and using <strong>Generalized Advantage Estimation (GAE)</strong></p>
+<p class="sd-card-text">for calculating the advantages of state-action pairs.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p class="sd-card-text">Buffer collects only raw data received from environment.</p>
+</div>
+<ul class="simple">
+<li><p class="sd-card-text">gamma (float): The gamma for GAE.</p></li>
+<li><p class="sd-card-text">lam (float): The lambda for reward GAE.</p></li>
+<li><p class="sd-card-text">adv_estimation_method (float):Roughly what KL divergence we think is
+appropriate between new and old policies after an update. This will
+get used for early stopping. (Usually small, 0.01 or 0.05.)</p></li>
+<li><p class="sd-card-text">standardized_reward (int):  Use standarized reward or not.</p></li>
+<li><p class="sd-card-text">standardized_cost (bool): Use standarized cost or not.</p></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="reference">
+<h3><a class="toc-backref" href="#id20">Reference</a><a class="headerlink" href="#reference" title="Permalink to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/1705.10528">Constrained Policy
+Optimization</a></p></li>
+<li><p><a class="reference external" href="https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf">A Natural Policy
+Gradient</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/1502.05477">Trust Region Policy
+Optimization</a></p></li>
+<li><p><a class="reference external" href="https://www.semanticscholar.org/paper/Constrained-Markov-Decision-Processes-Altman/3cc2608fd77b9b65f5bd378e8797b2ab1b8acde7">Constrained Markov Decision
+Processes</a></p></li>
+</ul>
+</section>
+</section>
+<section id="cards-clickable">
+<span id="appendix"></span><span id="id5"></span><h2><a class="toc-backref" href="#id21">Appendix</a><a class="headerlink" href="#cards-clickable" title="Permalink to this heading">¶</a></h2>
+<p><a class="sd-sphinx-override sd-badge sd-outline-success sd-text-success reference internal" href="#theorem-1"><span class="std std-ref">Click here to jump to CPO Theorem</span></a></p>
+<p><a class="sd-sphinx-override sd-badge sd-outline-success sd-text-success reference internal" href="#code-with-omnisafe"><span class="std std-ref">Click here to jump to Code with OmniSafe</span></a></p>
+<section id="detailed-proof-for-performance-bound">
+<h3><a class="toc-backref" href="#id22">Detailed Proof for Performance Bound</a><a class="headerlink" href="#detailed-proof-for-performance-bound" title="Permalink to this heading">¶</a></h3>
+<p>Our analysis will begin with the discounted future future state
+distribution, <span class="math notranslate nohighlight">\(d_\pi\)</span>, which is defined as:</p>
+<div class="math notranslate nohighlight">
+\[d_\pi(s)=(1-\gamma) \sum_{t=0}^{\infty} \gamma^t P\left(s_t=s|\pi\right)\]</div>
+<p>Let <span class="math notranslate nohighlight">\(p_\pi^t \in R^{|S|}\)</span> denote the vector with components
+<span class="math notranslate nohighlight">\(p_\pi^t(s)=P\left(s_t=s \mid \pi\right)\)</span>, and let
+<span class="math notranslate nohighlight">\(P_\pi \in R^{|S| \times|S|}\)</span> denote the transition matrix with
+components
+<span class="math notranslate nohighlight">\(P_\pi\left(s^{\prime} \mid s\right)=\int d a P\left(s^{\prime} \mid s, a\right) \pi(a \mid s)\)</span>,
+which shown as below:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\left[\begin{array}{c}
+p_\pi^t\left(s_1\right) \\
+p_\pi^t\left(s_2\right) \\
+\vdots\nonumber \\
+p_\pi^t\left(s_n\right)
+\end{array}\right]
+=\left[\begin{array}{cccc}
+P_\pi\left(s_1 \mid s_1\right) &amp; P_\pi\left(s_1 \mid s_2\right) &amp; \cdots &amp; P_\pi\left(s_1 \mid s_n\right) \\
+P_\pi\left(s_2 \mid s_1\right) &amp; P_\pi\left(s_2 \mid s_2\right) &amp; \cdots &amp; P_\pi\left(s_2 \mid s_n\right) \\
+\vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+P_\pi\left(s_n \mid s_1\right) &amp; P_\pi\left(s_n \mid s_2\right) &amp; \cdots &amp; P_\pi\left(s_n \mid s_n\right)
+\end{array}\right]\left[\begin{array}{c}
+p_\pi^{t-1}\left(s_1\right) \\
+p_\pi^{t-1}\left(s_2\right) \\
+\vdots \\
+p_\pi^{t-1}\left(s_n\right)
+\end{array}\right]
+\end{aligned}\end{split}\]</div>
+<p>then
+<span class="math notranslate nohighlight">\(p_\pi^t=P_\pi p_\pi^{t-1}=P_\pi^2 p_\pi^{t-2}=\ldots=P_\pi^t \mu\)</span>,
+where <span class="math notranslate nohighlight">\(\mu\)</span> represents the state distribution of the system at the
+moment, that is, the initial state distribution, then <span class="math notranslate nohighlight">\(d_\pi\)</span> can
+then be rewritten as :</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+d_\pi&amp;=\left[\begin{array}{c}
+d_\pi\left(s_1\right) \\
+d_\pi\left(s_2\right) \\
+\vdots \\
+d_\pi\left(s_n\right)
+\end{array}\right]
+=(1-\gamma)\left[\begin{array}{c}
+\gamma^0 p_\pi^0\left(s_1\right)+\gamma^1 p_\pi^1\left(s_1\right)+\gamma^2 p_\pi^2\left(s_1\right)+\ldots \\
+\gamma^0 p_\pi^0\left(s_2\right)+\gamma^1 p_\pi^1\left(s_2\right)+\gamma^2 p_\pi^2\left(s_2\right)+\ldots \\
+\vdots \\
+\gamma^0 p_\pi^0\left(s_3\right)+\gamma^1 p_\pi^1\left(s_3\right)+\gamma^2 p_\pi^2\left(s_3\right)+\ldots
+\end{array}\right]
+\end{aligned}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[d_\pi=(1-\gamma) \sum_{t=0}^{\infty} \gamma^t p_\pi^t=(1-\gamma)\left(1-\gamma P_\pi\right)^{-1} \mu\tag{17}\]</div>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-12" name="sd-tab-set-4" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-12">
+Lemma 1</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Lemma 1</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">For any function <span class="math notranslate nohighlight">\(f: S \rightarrow \mathbb{R}\)</span> and any policy <span class="math notranslate nohighlight">\(\pi\)</span> :</p>
+<div class="math notranslate nohighlight">
+\[(1-\gamma) E_{s \sim \mu}[f(s)]+E_{\tau \sim \pi}\left[\gamma f\left(s'\right)\right]-E_{s \sim d_\pi}[f(s)]=0\]</div>
+<p class="sd-card-text">where <span class="math notranslate nohighlight">\(\tau \sim \pi\)</span> denotes <span class="math notranslate nohighlight">\(s \sim d_\pi, a \sim \pi\)</span> and <span class="math notranslate nohighlight">\(s^{\prime} \sim P\)</span>.</p>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-13" name="sd-tab-set-4" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-13">
+Lemma 2</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Lemma 2</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">For any function <span class="math notranslate nohighlight">\(f: S \rightarrow \mathbb{R}\)</span> and any policies
+<span class="math notranslate nohighlight">\(\pi\)</span> and <span class="math notranslate nohighlight">\(\pi'\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[L_{\pi, f}\left(\pi'\right)\doteq \mathbb{E}_{\tau \sim \pi}\left[\left(\frac{\pi^{\prime}(a \mid s)}{\pi(a \mid s)}-1\right)\left(R\left(s, a, s^{\prime}\right)+\gamma f\left(s^{\prime}\right)-f(s)\right)\right]\]</div>
+<p class="sd-card-text">and <span class="math notranslate nohighlight">\(\epsilon_f^{\pi^{\prime}}\doteq \max_s \left|\mathbb{E}_{\substack{a \sim \pi , s'\sim P}} \left[R\left(s, a, s^{\prime}\right)+\gamma f\left(s^{\prime}\right)-f(s)\right]\right|\)</span>.
+Then the following bounds hold:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;J\left(\pi'\right)-J(\pi) \geq \frac{1}{1-\gamma}\left(L_{\pi, f}\left(\pi'\right)-2 \epsilon_f^{\pi'} D_{T V}\left(d_\pi \| d_{\pi^{\prime}}\right)\right) \\
+&amp;J\left(\pi^{\prime}\right)-J(\pi) \leq \frac{1}{1-\gamma}\left(L_{\pi, f}\left(\pi'\right)+2 \epsilon_f^{\pi'} D_{T V}\left(d_\pi \| d_{\pi'}\right)\right)
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text">where <span class="math notranslate nohighlight">\(D_{T V}\)</span> is the total variational divergence. Furthermore, the bounds are tight when <span class="math notranslate nohighlight">\(\pi^{\prime}=\pi\)</span>, and the LHS and RHS are identically zero.</p>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-14" name="sd-tab-set-4" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-14">
+Lemma 3</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Lemma 3</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">The divergence between discounted future state visitation
+distributions, <span class="math notranslate nohighlight">\(\Vert d_{\pi'}-d_\pi\Vert_1\)</span>, is bounded by an
+average divergence of the policies <span class="math notranslate nohighlight">\(\pi\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span> :</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+    \Vert d_{\pi'}-d_\pi\Vert_1 \leq \frac{2 \gamma}{1-\gamma} \mathbb{E}_{s \sim d_\pi}\left[D_{T V}\left(\pi^{\prime} \| \pi\right)[s]\right]
+\end{aligned}\]</div>
+<p class="sd-card-text">where <span class="math notranslate nohighlight">\(D_{\mathrm{TV}}(\pi' \| \pi)[s] = \frac{1}{2}\sum_a \Vert\pi'(a|s) - \pi(a|s)\Vert\)</span></p>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-15" name="sd-tab-set-4" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-15">
+Corollary 4</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Corollary 4</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Define the matrices
+<span class="math notranslate nohighlight">\(G \doteq\left(I-\gamma P_\pi\right)^{-1}, \bar{G} \doteq\left(I-\gamma P_{\pi^{\prime}}\right)^{-1}\)</span>,
+and <span class="math notranslate nohighlight">\(\Delta=P_{\pi^{\prime}}-P_\pi\)</span>. Then:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+G^{-1}-\bar{G}^{-1} &amp;=\left(I-\gamma P_\pi\right)-\left(I-\gamma P_{\pi^{\prime}}\right) \\
+G^{-1}-\bar{G}^{-1} &amp;=\gamma \Delta \\
+\bar{G}\left(G^{-1}-\bar{G}^{-1}\right) G &amp;=\gamma \bar{G} \Delta G \\
+\bar{G}-G &amp;=\gamma \bar{G} \Delta G
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text">Thus, with <span class="math notranslate nohighlight">\((17)\)</span></p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+     d^{\pi^{\prime}}-d^\pi &amp;=&amp;(1-\gamma)(\bar{G}-G) \mu \\
+     &amp;=&amp;\gamma(1-\gamma) \bar{G} \Delta G \mu\tag{19}\\
+     &amp;=&amp;\gamma \bar{G} \Delta d^\pi
+\end{eqnarray}</div></div>
+</div>
+</div>
+<input id="sd-tab-item-16" name="sd-tab-set-4" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-16">
+Corollary 5</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Corollary 5</p>
+</div>
+<div class="sd-card-body docutils">
+<div class="math notranslate nohighlight">
+\[\left\|P_{\pi^{\prime}}\right\|_1=\max _{s \in \mathcal{S}}\left\{\sum_{s^{\prime} \in \mathcal{S}} P_\pi\left(s^{\prime} \mid s\right)\right\}=1\]</div>
+</div>
+</div>
+</div>
+</div>
+<p>Begin with the bounds from <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Lemma 2</span> and bound the divergence by <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Lemma 3</span>, <span class="sd-sphinx-override sd-badge sd-outline-info sd-text-info">Theorem 1</span> can be finally proved.</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-17" name="sd-tab-set-5" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-17">
+Proof for Lemma 1</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Proof</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Multiply both sides of <span class="math notranslate nohighlight">\((17)\)</span> by <span class="math notranslate nohighlight">\(\left(I-\gamma P_\pi\right)\)</span>, we get:</p>
+<div class="math notranslate nohighlight">
+\[\left(I-\gamma P_\pi\right) d_\pi=(1-\gamma) \mu\]</div>
+<p class="sd-card-text">Then take the inner product with the vector <span class="math notranslate nohighlight">\(f \in \mathbb{R}^{|S|}\)</span> and notice that the vector <span class="math notranslate nohighlight">\(f\)</span>
+can be arbitrarily picked.</p>
+<div class="math notranslate nohighlight">
+\[&lt;f,\left(I-\gamma P_\pi\right) d_\pi&gt;=&lt;f,(1-\gamma) \mu&gt;\]</div>
+<p class="sd-card-text">Both sides of the above equation can be rewritten separately by:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+      &amp;&lt;f,\left(I-\gamma P_\pi\right) d_\pi&gt;=\left[\sum_s f(s) d_\pi(s)\right]-\\
+      &amp;\left[\sum_{s^{\prime}} f\left(s^{\prime}\right) \gamma \sum_s \sum_a \pi(a \mid s) P\left(s^{\prime} \mid s, a\right) d_\pi(s)\right] \\
+      &amp;=\mathbb{E}_{s \sim d_\pi}[f(s)]-\mathbb{E}_{\tau \sim \pi}\left[\gamma f\left(s^{\prime}\right)\right]
+\end{aligned}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+      &lt;f,(1-\gamma) \mu&gt;=\sum_s f(s)(1-\gamma) \mu(s)=(1-\gamma) \mathbb{E}_{s \sim \mu}[f(s)]
+\end{aligned}\]</div>
+<p class="sd-card-text">Finally, we obtain:</p>
+<div class="math notranslate nohighlight">
+\[(1-\gamma) \mathbb{E}_{s \sim \mu}[f(s)]+\mathbb{E}_{\tau \sim \pi}\left[\gamma f\left(s^{\prime}\right)\right]-\mathbb{E}_{s \sim d_\pi}[f(s)]\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text"><strong>Supplementary details</strong></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+d^\pi &amp;=(1-\gamma)\left(I-\gamma P_\pi\right)^{-1} \mu \\\left(I-\gamma P_\pi\right) d^\pi &amp;=(1-\gamma) \mu \\ \int_{s \in \mathcal{S}}\left(I-\gamma P_\pi\right) d^\pi f(s) d s &amp;=\int_{s \in \mathcal{S}}(1-\gamma) \mu f(s) d s \\ \int_{s \in \mathcal{S}} d^\pi f(s) d s-\int_{s \in \mathcal{S}} \gamma P_\pi d^\pi f(s) d s &amp;=\int_{s \in \mathcal{S}}(1-\gamma) \mu f(s) d s \\ \mathbb{E}_{s \sim d^\pi}[f(s)]-\mathbb{E}_{s \sim d^\pi, a \sim \pi, s^{\prime} \sim P}\left[\gamma f\left(s^{\prime}\right)\right] &amp;=(1-\gamma) \mathbb{E}_{s \sim \mu}[f(s)]
+\end{aligned}\end{split}\]</div>
+</div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-18" name="sd-tab-set-5" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-18">
+Proof for Lemma 2</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Proof</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">note that the objective function can be represented as:</p>
+<div class="math notranslate nohighlight">
+\[J(\pi)=\frac{1}{1-\gamma} \mathbb{E}_{\tau \sim \pi}\left[R\left(s, a, s^{\prime}\right)\right]\tag{18}\]</div>
+<div class="math notranslate nohighlight">
+\[=\mathbb{E}_{s \sim \mu}[f(s)]+\frac{1}{1-\gamma} \mathbb{E}_{\tau \sim \pi}\left[R\left(s, a, s^{\prime}\right)+\gamma f\left(s^{\prime}\right)-f(s)\right]\]</div>
+<p class="sd-card-text">Let <span class="math notranslate nohighlight">\(\delta_f\left(s, a, s^{\prime}\right)\doteq R\left(s, a, s^{\prime}\right)+\gamma f\left(s^{\prime}\right)-f(s)\)</span>,
+then by <span class="math notranslate nohighlight">\((18)\)</span>, we easily obtain that:</p>
+<div class="math notranslate nohighlight">
+\[J\left(\pi'\right)-J(\pi)=\frac{1}{1-\gamma}\left\{\mathbb{E}_{\tau \sim \pi^{\prime}}\left[\delta_f\left(s, a, s^{\prime}\right)\right]-\mathbb{E}_{\tau \sim \pi}\left[\delta_f\left(s, a, s^{\prime}\right]\right\}\right.\]</div>
+<p class="sd-card-text">For the first term of the equation, let
+<span class="math notranslate nohighlight">\(\bar{\delta}_f^{\pi'} \in \mathbb{R}^{|S|}\)</span> denote the vector
+of components
+<span class="math notranslate nohighlight">\(\bar{\delta}_f^{\pi'}(s)=\mathbb{E}_{a \sim \pi', s' \sim P}\left[\delta_f\left(s, a, s'|s\right)\right]\)</span>,
+then</p>
+<div class="math notranslate nohighlight">
+\[\mathbb{E}_{\tau \sim \pi'}\left[d_f\left(s, a, s'\right)\right]=&lt;d_{\pi'}, \bar{\delta}^f_{\pi'}&gt;=&lt;d_\pi,\bar{\delta}^f_{\pi'}&gt;+&lt;d_{\pi'}-d_\pi, \hat{d}^f_{\pi'}&gt;\]</div>
+<p class="sd-card-text">By using Holder’s inequality, for any <span class="math notranslate nohighlight">\(p, q \in[1, \infty]\)</span>,
+such that <span class="math notranslate nohighlight">\(\frac{1}{p}+\frac{1}{q}=1\)</span>. we have</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    &amp; \mathbb{E}_{\tau \sim \pi^{\prime}}\left[\delta_f\left(s, a, s^{\prime}\right)\right] \leq \langle d_\pi, \bar{\delta}_f^{\pi^{\prime}} \rangle+\Vert d_{\pi'}-d_\pi \Vert_p \Vert \bar{\delta}_f^{\pi'}\Vert_q  \\
+    &amp;\mathbb{E}_{\tau \sim \pi'}\left[\delta_f\left(s, a, s'\right)\right] \geq \langle d_\pi, \bar{\delta}_f^{\pi'}\rangle-\Vert d_{\pi'}-d_\pi \Vert_p \Vert \bar{\delta}_f^{\pi'}\Vert_q
+\end{aligned}\end{split}\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text"><strong>Hölder’s inequality</strong>:</p>
+<p class="sd-card-text">Let <span class="math notranslate nohighlight">\((\mathcal{S}, \sum, \mu)\)</span> be a measure space and let
+<span class="math notranslate nohighlight">\(p, q \in [1, \infty]\)</span> with
+<span class="math notranslate nohighlight">\(\frac{1}{p} + \frac{1}{q} = 1\)</span>. Then for all measurable
+real- or complex-valued function <span class="math notranslate nohighlight">\(f\)</span> and <span class="math notranslate nohighlight">\(g\)</span> on
+<span class="math notranslate nohighlight">\(s\)</span>, <span class="math notranslate nohighlight">\(\|f g\|_1 \leq\|f\|_p\|g\|_q\)</span>.</p>
+<p class="sd-card-text">If, in addition, <span class="math notranslate nohighlight">\(p, q \in(1, \infty)\)</span> and
+<span class="math notranslate nohighlight">\(f \in L^p(\mu)\)</span> and <span class="math notranslate nohighlight">\(g \in L^q(\mu)\)</span>, then
+Hölder’s inequality becomes an equality if and only if
+<span class="math notranslate nohighlight">\(|f|^p\)</span> and <span class="math notranslate nohighlight">\(|g|^q\)</span> are linearly dependent in
+<span class="math notranslate nohighlight">\(L^1(\mu)\)</span>, meaning that there exist real numbers
+<span class="math notranslate nohighlight">\(\alpha, \beta \geq 0\)</span>, not both of them zero, such that
+<span class="math notranslate nohighlight">\(\alpha|f|^p=\beta|g|^q \mu\)</span>-almost everywhere.</p>
+</div>
+<p class="sd-card-text">The last step is to observe that, by the importance of sampling identity,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\left\langle d^\pi, \bar{\delta}_f^{\pi^{\prime}}\right\rangle &amp;=\underset{s \sim d^\pi, a \sim \pi^{\prime}, s^{\prime} \sim P}{\mathbb{E}}\left[\delta_f\left(s, a, s^{\prime}\right)\right] \\
+&amp;=\underset{s \sim d^\pi, a \sim \pi, s^{\prime} \sim P}{\mathbb{E}}\left[\left(\frac{\pi^{\prime}(a \mid s)}{\pi(a \mid s)}\right) \delta_f\left(s, a, s^{\prime}\right)\right]
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text">After grouping terms, the bounds are obtained.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\left\langle d^\pi, \bar{\delta}_f^{\pi^{\prime}}\right\rangle \pm\Vert d^{\pi^{\prime}}-d^\pi\Vert_p\Vert\bar{\delta}_f^{\pi^{\prime}}\Vert_q\\
+&amp;=\mathbb{E}_{\substack{s \sim d^\pi\\ a \sim \pi\\ s^{\prime} \sim P}}\left[\left(\frac{\pi'(a|s)}{\pi(a|s)}\right) \delta_f\left(s, a, s^{\prime}\right)\right] \pm 2 \epsilon_f^{\pi^{\prime}} D_{T V}\left(d_{\pi'} \| d_\pi\right)
+\end{aligned}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    &amp;J(\pi')-J(\pi)\\
+    &amp;\leq \frac{1}{1-\gamma}\mathbb{E}_{\substack{s \sim d^\pi \\ a \sim \pi \\ s' \sim P}}[(\frac{\pi^{\prime}(a|s)}{\pi(a|s)}) \delta_f(s, a, s^{\prime})]+2 \epsilon_f^{\pi^{\prime}} D_{T V}(d^{\pi^{\prime}} \| d^\pi)-\mathbb{E}_{\substack{s \sim d^\pi \\ a \sim \pi \\ s' \sim P}}[\delta_f(s, a, s^{\prime})]\\
+    &amp;=\frac{1}{1-\gamma}(\mathbb{E}_{\substack{s \sim d^\pi \\ a \sim \pi \\ s' \sim P}}[(\frac{\pi^{\prime}(a|s)}{\pi(a|s)}) \delta_f(s, a, s^{\prime})]-\mathbb{E}_{\substack{s \sim d^\pi \\ a \sim \pi \\ s' \sim P}}[\delta_f(s, a, s^{\prime})]+2 \epsilon_f^{\pi^{\prime}} D_{T V}(d^{\pi^{\prime}} \| d^\pi))\\
+    &amp;=\frac{1}{1-\gamma}(\mathbb{E}_{\substack{s \sim d^\pi \\ a \sim \pi \\ s' \sim P}}[(\frac{\pi^{\prime}(a \mid s)}{\pi(a \mid s)}-1) \delta_f(s, a, s^{\prime})]+2 \epsilon_f^{\pi^{\prime}} D_{T V}(d^{\pi^{\prime}} \| d^\pi))
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text">The lower bound is the same.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+J\left(\pi^{\prime}\right)-J(\pi) \geq \mathbb{E}_{\substack{s \sim d^\pi \\ a \sim \pi \\ s' \sim P}}\left[\left(\frac{\pi^{\prime}(a|s)}{\pi(a|s)}-1\right) \delta_f\left(s, a, s^{\prime}\right)\right]-2 \epsilon_f^{\pi^{\prime}} D_{T V}\left(d^{\pi^{\prime}} \| d^\pi\right)
+\end{aligned}\end{split}\]</div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-19" name="sd-tab-set-5" type="radio">
+</input><label class="sd-tab-label" for="sd-tab-item-19">
+Proof for Lemma 3</label><div class="sd-tab-content docutils">
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Proof</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">First, using Corollary 4, we obtain</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \left\|d^{\pi^{\prime}}-d^\pi\right\|_1 &amp;=\gamma\left\|\bar{G} \Delta d^\pi\right\|_1 \\
+    &amp; \leq \gamma\|\bar{G}\|_1\left\|\Delta d^\pi\right\|_1
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text">Meanwhile,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \|\bar{G}\|_1 &amp;=\left\|\left(I-\gamma P_{\pi^{\prime}}\right)^{-1}\right\|_1 \\ &amp;=\left\|\sum_{t=0}^{\infty} \gamma^t P_{\pi^{\prime}}^t\right\|_1 \\ &amp; \leq \sum_{t=0}^{\infty} \gamma^t\left\|P_{\pi^{\prime}}\right\|_1^t \\ &amp;=\left(1-\gamma\left\|P_{\pi^{\prime}}\right\|_1\right)^{-1} \\ &amp;=(1-\gamma)^{-1}
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text">And, using Corollary 5, we have,</p>
+<div class="math notranslate nohighlight">
+  \begin{eqnarray}
+     \Delta d^\pi\left[s^{\prime}\right] &amp;=&amp; \sum_s \Delta\left(s^{\prime} \mid s\right) d^\pi(s) \\
+     &amp;=&amp;\sum_s \left\{ P_{\pi^{\prime}}\left(s^{\prime} \mid s\right)-P_\pi\left(s^{\prime} \mid s\right)  \right\} d_{\pi}(s)\tag{20} \\
+     &amp;=&amp;\sum_s \left\{ P\left(s^{\prime} \mid s, a\right) \pi^{\prime}(a \mid s)-P\left(s^{\prime} \mid s, a\right) \pi(a \mid s)  \right\} d_{\pi}(s)\\
+     &amp;=&amp;\sum_s \left\{ P\left(s^{\prime} \mid s, a\right)\left[\pi^{\prime}(a \mid s)-\pi(a \mid s)\right] \right\} d_{\pi}(s)
+   \end{eqnarray}</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text"><strong>Total variation distance of probability measures</strong></p>
+<p class="sd-card-text"><span class="math notranslate nohighlight">\(\Vert d_{\pi'}-d_\pi \Vert_1=\sum_{a \in \mathcal{A}}\left|d_{\pi_{{\boldsymbol{\theta}}^{\prime}}}(a|s)-d_{\pi_{\boldsymbol{\theta}}}(a|s)\right|=2 D_{\mathrm{TV}}\left(d_{\pi_{{\boldsymbol{\theta}}'}}, d_\pi\right)[s]\)</span></p>
+</div>
+<p class="sd-card-text">Finally, using <span class="math notranslate nohighlight">\((20)\)</span>, we obtain,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\left\|\Delta d^\pi\right\|_1 &amp;=\sum_{s^{\prime}}\left|\sum_s \Delta\left(s^{\prime} \mid s\right) d^\pi(s)\right| \\ &amp; \leq \sum_{s, s^{\prime}}\left|\Delta\left(s^{\prime} \mid s\right)\right| d^\pi(s) \\ &amp;=\sum_{s, s^{\prime}}\left|\sum_a P\left(s^{\prime} \mid s, a\right)\left(\pi^{\prime}(a \mid s)-\pi(a \mid s)\right)\right| d^\pi(s) \\ &amp; \leq \sum_{s, a, s^{\prime}} P\left(s^{\prime} \mid s, a\right)\left|\pi^{\prime}(a \mid s)-\pi(a \mid s)\right| d^\pi(s) \\ &amp;=\sum_{s^{\prime}} P\left(s^{\prime} \mid s, a\right) \sum_{s, a}\left|\pi^{\prime}(a \mid s)-\pi(a \mid s)\right| d^\pi(s) \\ &amp;=\sum_{s, a}\left|\pi^{\prime}(a \mid s)-\pi(a \mid s)\right| d^\pi(s) \\ &amp;=\sum_a \underset{s \sim d^\pi}{ } \mathbb{E}^{\prime}|(a \mid s)-\pi(a \mid s)| \\ &amp;=2 \underset{s \sim d^\pi}{\mathbb{E}}\left[D_{T V}\left(\pi^{\prime}|| \pi\right)[s]\right]
+\end{aligned}\end{split}\]</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="proof-of-analytical-solution-to-lqclp">
+<h3><a class="toc-backref" href="#id23">Proof of Analytical Solution to LQCLP</a><a class="headerlink" href="#proof-of-analytical-solution-to-lqclp" title="Permalink to this heading">¶</a></h3>
+<div class="sd-card sd-sphinx-override sd-mb-3 sd-shadow-sm sd-outline-success sd-border-3 sd-rounded-3 docutils">
+<div class="sd-card-header sd-bg-info sd-text-white sd-font-weight-bold docutils">
+<p class="sd-card-text">Theorem 2 (Optimizing Linear Objective with Linear, Quadratic Constraints)</p>
+</div>
+<div class="sd-card-body docutils">
+<p class="sd-card-text">Consider the problem</p>
+<div class="math notranslate nohighlight">
+\begin{eqnarray}
+     p^*&amp;=&amp;\min_x g^T x \\
+     \text { s.t. } b^T x+c &amp;\leq&amp; 0 \\
+     x^T H x &amp;\leq&amp; \delta
+\end{eqnarray}</div><p class="sd-card-text">where
+<span class="math notranslate nohighlight">\(g, b, x \in \mathbb{R}^n, c, \delta \in \mathbb{R}, \delta&gt;0, H \in \mathbb{S}^n\)</span>,
+and <span class="math notranslate nohighlight">\(H \succ 0\)</span>. When there is at least one strictly feasible
+point, the optimal point <span class="math notranslate nohighlight">\(x^*\)</span> satisfies</p>
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+x^*=-\frac{1}{\lambda^*} H^{-1}\left(g+\nu^* b\right)
+\end{aligned}\]</div>
+<p class="sd-card-text">where <span class="math notranslate nohighlight">\(\lambda^*\)</span> and <span class="math notranslate nohighlight">\(\nu^*\)</span> are defined by</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\nu^*=\left(\frac{\lambda^* c-r}{s}\right)_{+}, \\
+&amp;\lambda^*=\arg \max _{\lambda \geq 0} \begin{cases}f_a(\lambda) \doteq \frac{1}{2 \lambda}\left(\frac{r^2}{s}-q\right)+\frac{\lambda}{2}\left(\frac{c^2}{s}-\delta\right)-\frac{r c}{s} &amp; \text { if } \lambda c-r&gt;0 \\
+f_b(\lambda) \doteq-\frac{1}{2}\left(\frac{q}{\lambda}+\lambda \delta\right) &amp; \text { otherwise }\end{cases}
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text">with <span class="math notranslate nohighlight">\(q=g^T H^{-1} g, r=g^T H^{-1} b\)</span>, and
+<span class="math notranslate nohighlight">\(s=b^T H^{-1} b\)</span>.</p>
+<p class="sd-card-text">Furthermore, let
+<span class="math notranslate nohighlight">\(\Lambda_a \doteq\{\lambda \mid \lambda c-r&gt;0, \lambda \geq 0\}\)</span>,
+and
+<span class="math notranslate nohighlight">\(\Lambda_b \doteq\{\lambda \mid \lambda c-r \leq 0, \lambda \geq 0\}\)</span>.
+The value of <span class="math notranslate nohighlight">\(\lambda^*\)</span> satisfies</p>
+<div class="math notranslate nohighlight">
+\[\lambda^* \in\left\{\lambda_a^* \doteq \operatorname{Proj}\left(\sqrt{\frac{q-r^2 / s}{\delta-c^2 / s}}, \Lambda_a\right), \lambda_b^* \doteq \operatorname{Proj}\left(\sqrt{\frac{q}{\delta}}, \Lambda_b\right)\right\}\]</div>
+<p class="sd-card-text">with <span class="math notranslate nohighlight">\(\lambda^*=\lambda_a^*\)</span> if
+<span class="math notranslate nohighlight">\(f_a\left(\lambda_a^*\right)&gt;f_b\left(\lambda_b^*\right)\)</span> and
+<span class="math notranslate nohighlight">\(\lambda = \lambda_b^*\)</span> otherwise, and
+<span class="math notranslate nohighlight">\(\operatorname{Proj}(a, S)\)</span> is the projection of a point
+<span class="math notranslate nohighlight">\(x\)</span> on to a set <span class="math notranslate nohighlight">\(S\)</span>. hint: the projection of a point
+<span class="math notranslate nohighlight">\(x \in \mathbb{R}\)</span> onto a convex segment of
+<span class="math notranslate nohighlight">\(\mathbb{R},[a, b]\)</span>, has value
+<span class="math notranslate nohighlight">\(\operatorname{Proj}(x,[a, b])=\max (a, \min (b, x))\)</span>.</p>
+</div>
+</div>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-info sd-bg-text-info">
+Proof for Theorem 2 (Click here)<div class="sd-summary-down docutils">
+<svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-down" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5.22 8.72a.75.75 0 000 1.06l6.25 6.25a.75.75 0 001.06 0l6.25-6.25a.75.75 0 00-1.06-1.06L12 14.44 6.28 8.72a.75.75 0 00-1.06 0z"></path></svg></div>
+<div class="sd-summary-up docutils">
+<svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-up" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M18.78 15.28a.75.75 0 000-1.06l-6.25-6.25a.75.75 0 00-1.06 0l-6.25 6.25a.75.75 0 101.06 1.06L12 9.56l5.72 5.72a.75.75 0 001.06 0z"></path></svg></div>
+</summary><div class="sd-summary-content sd-card-body sd-border-3 docutils">
+<p class="sd-card-text">This is a convex optimization problem. When there is at
+least one strictly feasible point, strong duality holds by Slater’s
+theorem. We exploit strong duality to solve the problem analytically.
+First using the method of Lagrange multipliers,
+<span class="math notranslate nohighlight">\(\exists \lambda, \mu \geq 0\)</span></p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}(x, \lambda, \nu)=g^T x+\frac{\lambda}{2}\left(x^T H x-\delta\right)+\nu\left(b^T x+c\right)\]</div>
+<p class="sd-card-text">Because of strong duality,</p>
+<p class="sd-card-text"><span class="math notranslate nohighlight">\(p^*=\min_x\max_{\lambda \geq 0, \nu \geq 0} \mathcal{L}(x, \lambda, \nu)\)</span></p>
+<div class="math notranslate nohighlight">
+\[\nabla_x \mathcal{L}(x, \lambda, \nu)=\lambda H x+(g+\nu b)\]</div>
+<p class="sd-card-text">Plug in <span class="math notranslate nohighlight">\(x^*\)</span>,</p>
+<p class="sd-card-text"><span class="math notranslate nohighlight">\(H \in \mathbb{S}^n \Rightarrow H^T=H \Rightarrow\left(H^{-1}\right)^T=H^{-1}\)</span></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+x^T H x
+&amp;=\left(-\frac{1}{\lambda} H^{-1}(g+\nu b)\right)^T H\left(-\frac{1}{\lambda} H^{-1}(g+\nu b)\right)\\
+&amp;=\frac{1}{\lambda^2}(g+\nu b)^T H^{-1}(g+\nu b) -\frac{1}{2 \lambda}(g+\nu b)^T H^{-1}(g+\nu b)\\
+&amp;=-\frac{1}{2 \lambda}\left(g^T H^{-1} g+\nu g^T H^{-1} b+\nu b^T H^{-1} g+\nu^2 b^T H^{-1} b\right)\\
+&amp;=-\frac{1}{2 \lambda}\left(q+2 \nu r+\nu^2 s\right)
+\end{aligned}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    p^*
+    &amp;=\min_x \underset{\begin{subarray}{c} \lambda \geq 0 \\ \nu \geq 0\end{subarray}}{\max}
+    \; g^T x + \frac{\lambda}{2} \left( x^T H x - \delta \right) + \nu \left(b^Tx +c \right) \\
+    &amp;\xlongequal[duality]{strong} \underset{\begin{subarray}{c} \lambda \geq 0 \\ \nu \geq 0\end{subarray}}{\max} \min_x  \; \frac{\lambda}{2} x^T H x + \left(g + \nu b\right)^T x + \left( \nu c - \frac{1}{2} \lambda \delta \right)\\
+    &amp; \;\;\; \implies x^* = -\frac{1}{\lambda} H^{-1} \left(g + \nu b \right) ~~~ \nabla_x \mathcal L(x,\lambda, \nu) =0\\
+    &amp;\xlongequal{\text{Plug in } x^*} \underset{\begin{subarray}{c} \lambda \geq 0 \\ \nu \geq 0\end{subarray}}{\max}  \; -\frac{1}{2\lambda} \left(g + \nu b \right)^T H^{-1} \left(g + \nu b \right) + \left( \nu c - \frac{1}{2} \lambda \delta \right)\\
+    &amp;\xlongequal[s \doteq b^T H^{-1} b]{
+        q \doteq g^T H^{-1} g,
+        r \doteq g^T H^{-1} b
+    } \underset{\begin{subarray}{c} \lambda \geq 0 \\ \nu \geq 0\end{subarray}}{\max}  \; -\frac{1}{2\lambda} \left(q + 2 \nu r + \nu^2 s\right) + \left( \nu c - \frac{1}{2} \lambda \delta \right)\\
+    &amp; \;\;\; \implies \frac {\partial\mathcal L}{\partial\nu} = -\frac{1}{2\lambda}\left( 2r + 2 \nu s \right) + c \\
+    &amp;~~ \text{Optimizing single-variable convex quadratic function over } \mathbb R_+ \\
+    &amp; \;\;\; \implies \nu = \left(\frac{\lambda c - r}{s} \right)_+ \\
+    &amp;= \max_{\lambda \geq 0} \;  \left\{ \begin{array}{ll}
+    \frac{1}{2\lambda} \left(\frac{r^2}{s} -q\right) + \frac{\lambda}{2}\left(\frac{c^2}{s} - \delta\right) - \frac{rc}{s}  &amp; \text{if } \lambda \in \Lambda_a  \\
+    -\frac{1}{2} \left(\frac{q}{\lambda}  + \lambda \delta\right) &amp; \text{if } \lambda \in \Lambda_b
+    \end{array}\right.\\
+    &amp;~~~~ \text{where} \begin{array}{ll}
+    \Lambda_a \doteq \{\lambda | \lambda c - r  &gt; 0, \;\; \lambda \geq 0\}, \\ \Lambda_b \doteq \{\lambda | \lambda c - r \leq 0, \;\; \lambda \geq 0\}
+    \end{array}
+\end{aligned}\end{split}\]</div>
+<p class="sd-card-text"><span class="math notranslate nohighlight">\(\lambda \in \Lambda_a \Rightarrow \nu&gt;0\)</span>, then plug in
+<span class="math notranslate nohighlight">\(\nu=\frac{\lambda c-r}{s} ; \lambda \in \Lambda_a \Rightarrow \nu \leq 0\)</span>,
+then plug in <span class="math notranslate nohighlight">\(\nu=0\)</span></p>
+</div>
+</details></section>
+</section>
+</section>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="../BaseRL/ppo_docs.html"
+       title="previous chapter">← Proximal Policy Optimization</a>
+  </li>
+  <li class="next">
+    <a href="pcpo_docs.html"
+       title="next chapter">Projection-Based Constrained Policy Optimization →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2022, OmniSafe Team.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.8.0.
+</div>
+            </div>
+          </div>
+      </page>
+    </div></div>
+    
+    
+  </body>
+</html>

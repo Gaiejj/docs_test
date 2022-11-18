@@ -1,0 +1,419 @@
+.. role:: raw-latex(raw)
+   :format: latex
+..
+
+Reward Constrained Policy Optimization
+======================================
+
+Introduction
+------------
+
+Involving constraints is a natural and consistent approach to ensure a
+satisfying behavior without the need for manually selecting the penalty
+coefficients. Reward constrained policy optimization
+:raw-latex:`\cite{rcpo}` (RCPO) incorporates the constraints as a
+penalty signal into the reward function, as guidance for the policy
+towards a constraint satisfying solution. And RCPO can be applied to
+problems with general constraints.
+
+Target
+------
+
+In CMDPs, a constraint of the state :math:`s_t` is a function of
+penalties start from :math:`s_t` to :math:`s_N`:
+:math:`C(s_t) = F(c (s_t, a_t), ..., c (s_N, a_N))`, and is required to
+be under a given threshold :math:`d`. A constraint may be a discounted
+sum (similar to the reward-to-go), the average sum and more. Here we
+refer to the collection of these constraints as general constraints.
+RCPO considers single-constraint case. The optimization objective:
+
+.. math::
+
+   \label{constrained_mdp}
+   \max_{\pi \in \Pi} J^R_{\pi} \texttt{ , s.t. }  J^C_{\pi} \leq \alpha  ,
+
+where :math:`J_\pi^C` denotes the expectation over the constraint, as we
+mentioned in notations.
+
+Lagrange relaxation
+-------------------
+
+CMDP’s are often solved using the Lagrange relaxation technique
+:raw-latex:`\cite{bertesekas1999nonlinear}`. As before, in this work, we
+still use notations :math:`\theta`, :math:`\pi_\theta` to denote the
+parameters of the policy and the parameterized policy, respectively.
+Given a CMDP (`[constrained_mdp] <#constrained_mdp>`__), the
+unconstrained problem can be expressed by:
+
+.. math::
+
+   \label{constrained_mdp_dual}
+       \min_{\lambda \geq 0} \max_\theta L (\lambda, \theta) = \min_{\lambda \geq 0} \max_\theta \left[ J^R_{\pi_\theta} - \lambda \cdot (J^C_{\pi_\theta} - d) \right]  ,
+
+where :math:`L` is the Lagrangian and :math:`\lambda \geq 0` is the
+Lagrange multiplier. Notice, as :math:`\lambda` increases, the solution
+to (`[constrained_mdp_dual] <#constrained_mdp_dual>`__) converges to
+that of (`[constrained_mdp] <#constrained_mdp>`__). This suggests a
+two-timescale approach: on the faster timescale, :math:`\theta` is found
+by solving (`[constrained_mdp_dual] <#constrained_mdp_dual>`__), while
+on the slower timescale, :math:`\lambda` is increased until the
+constraint is satisfied. The goal is to find a saddle point
+:math:`(\theta^* (\lambda^*), \lambda^*)` of
+(`[constrained_mdp_dual] <#constrained_mdp_dual>`__), which is a
+feasible solution.
+
+And we can compute the derivative of the Lagrangian
+:math:`L(\theta, \lambda)` with respect to :math:`\theta` and
+:math:`\lambda`:
+
+.. math::
+
+   \begin{aligned}
+   &\nabla_\theta L (\lambda, \theta) = \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \left[ R(s) - \lambda \cdot C(s) \right]\right]  ,  \label{lagrange_policy_gradient}\\
+   &\nabla_{\lambda} L (\lambda, \theta) = -( \mathbb{E}^{\pi_\theta}_{s \sim \mu} [C (s)] - \alpha )  . \label{lambda_update_rule}
+   \end{aligned}
+
+With the derivatives, we obtain the update steps for :math:`\lambda` and
+:math:`\theta`:
+
+.. math::
+
+   \label{eqn:lambda_gradient}
+   \lambda_{k+1} = \Gamma_\lambda [\lambda_{k} - \eta_1 (k) \nabla_{\lambda} L (\lambda_k, \theta_k)]  ,
+
+.. math::
+
+   \label{eqn:theta_gradient}
+   \theta_{k+1} = \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta L (\lambda_k, \theta_k)]  ,
+
+where :math:`\Gamma_\theta` is a projection operator, which keeps the
+iterate :math:`\theta_k` stable by projecting onto a compact and convex
+set. :math:`\Gamma_\lambda` projects :math:`\lambda` into the range
+:math:`[0, \lambda_\text{max}`  [1]_].
+
+We make the following assumptions in order to ensure convergence to a
+constraint satisfying policy:
+
+.. container:: assumption
+
+   The value :math:`V^\pi_R (s)` is bounded for all policies
+   :math:`\pi \in \Pi`.
+
+.. container:: assumption
+
+   Every local minima of :math:`J^C_{\pi_\theta}` is a feasible
+   solution.
+
+Assumption `[existance_of_policy] <#existance_of_policy>`__ is the
+minimal requirement in order to ensure convergence, given a general
+constraint, of a gradient algorithm to a feasible solution. Stricter
+assumptions, such as convexity, may ensure convergence to the optimal
+solution; however, in practice constraints are non-convex and such
+assumptions do not hold.
+
+.. container:: assumption
+
+   .. math::
+
+      \begin{aligned}
+      \sum_{k=0}^\infty \eta_1 (k) = \sum_{k=0}^\infty \eta_2 (k) = \infty,  \sum_{k=0}^\infty \left( \eta_1 (k) ^2 + \eta_2 (k)^2 \right) < \infty \text{ and } \frac{\eta_1 (k)}{\eta_2 (k)} \rightarrow 0  .
+      \end{aligned}
+
+.. container:: theorem
+
+   Under Assumption `[step_sizes] <#step_sizes>`__, as well as the
+   standard stability assumption for the iterates and bounded noise
+   :raw-latex:`\cite{borkar2008stochastic}`, the iterates
+   :math:`(\theta_n, \lambda_n)` converge to a fixed point (a local
+   minima) almost surely.
+
+.. container:: proof
+
+   *Proof.* We provide a brief proof for clarity. We refer the reader to
+   Chapter 6 of :raw-latex:`\cite{borkar2008stochastic}` for a full
+   proof of convergence for two-timescale stochastic approximation
+   processes.
+
+   Initially, we assume nothing regarding the structure of the
+   constraint as such :math:`\lambda_\text{max}` is given some finite
+   value. The special case in which Assumption
+   `[existance_of_policy] <#existance_of_policy>`__ holds is handled in
+   Lemma
+   `[lemma:constraint_satisfying_policy] <#lemma:constraint_satisfying_policy>`__.
+
+   The proof of convergence to a local saddle point of the Lagrangian
+   (`[constrained_mdp_dual] <#constrained_mdp_dual>`__) contains the
+   following main steps:
+
+   #. **Convergence of :math:`\theta`-recursion:** We utilize the fact
+      that owing to projection, the :math:`\theta` parameter is stable.
+      We show that the :math:`\theta`-recursion tracks an ODE in the
+      asymptotic limit, for any given value of :math:`\lambda` on the
+      slowest timescale.
+
+   #. **Convergence of :math:`\lambda`-recursion:** This step is similar
+      to earlier analysis for constrained MDPs. In particular, we show
+      that :math:`\lambda`-recursion in
+      (`[constrained_mdp_dual] <#constrained_mdp_dual>`__) converges and
+      the overall convergence of :math:`(\theta_k, \lambda_k)` is to a
+      local saddle point :math:`(\theta^*(\lambda^*, \lambda^*)` of
+      :math:`L (\lambda, \theta)`.
+
+   **Step 1:** Due to the timescale separation, we can assume that the
+   value of :math:`\lambda` (updated on the slower timescale) is
+   constant. As such it is clear that the following ODE governs the
+   evolution of :math:`\theta`:
+
+   .. math::
+
+      \label{eqn:theta_ode}
+          \dot \theta_t = \Gamma_\theta (\nabla_\theta L (\lambda, \theta_t))
+
+   where :math:`\Gamma_\theta` is a projection operator which ensures
+   that the evolution of the ODE stays within the compact and convex set
+   :math:`\Theta := \Pi_{i=1}^k \left[ \theta_\text{min}^i, \theta_\text{max}^i \right]`.
+
+   As :math:`\lambda` is considered constant, the process over
+   :math:`\theta` is:
+
+   .. math::
+
+      \begin{aligned}
+          \theta_{k+1} &= \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta L (\lambda, \theta_k)] \\
+          &= \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \left[ R(s) - \lambda \cdot C(s) \right]\right]]
+      \end{aligned}
+
+   Thus (`[eqn:theta_gradient] <#eqn:theta_gradient>`__) can be seen as
+   a discretization of the ODE (`[eqn:theta_ode] <#eqn:theta_ode>`__).
+   Finally, using the standard stochastic approximation arguments from
+   :raw-latex:`\cite{borkar2008stochastic}` concludes step 1.
+
+   **Step 2:** We start by showing that the :math:`\lambda`-recursion
+   converges and then show that the whole process converges to a local
+   saddle point of :math:`L(\lambda, \theta)`. The process governing the
+   evolution of :math:`\lambda`:
+
+   .. math::
+
+      \begin{aligned}
+          \lambda_{k+1} &= \Gamma_\lambda [\lambda_{k} - \eta_1 (k) \nabla_{\lambda} L (\lambda_k, \theta(\lambda_k))] \\
+          &= \Gamma_\lambda [\lambda_k + \eta_1 (k) ( \mathbb{E}^{\pi_{\theta(\lambda_k)}}_{s \sim \mu} [C (s)] - \alpha )]
+      \end{aligned}
+
+   where :math:`\theta(\lambda_k)` is the limiting point of the
+   :math:`\theta`-recursion corresponding to :math:`\lambda_k`, can be
+   seen as the following ODE:
+
+   .. math::
+
+      \label{eqn:ode_lambda}
+          \dot \lambda_t = \Gamma_\lambda (\nabla_\lambda L (\lambda_t, \theta(\lambda_t))) \enspace .
+
+   As shown in :raw-latex:`\cite{borkar2008stochastic}` chapter 6,
+   :math:`(\lambda_n, \theta_n)` converges to the internally chain
+   transitive invariant sets of the ODE
+   (`[eqn:ode_lambda] <#eqn:ode_lambda>`__), :math:`\dot \theta_t =0`.
+   Thus,
+   :math:`(\lambda_n, \theta_n) \rightarrow \{ (\lambda(\theta), \theta) : \theta \in \mathbb{R}^k \}`
+   almost surely. Finally, as seen in Theorem 2 of Chapter 2 of
+   :raw-latex:`\cite{borkar2008stochastic}`,
+   :math:`\theta_n \rightarrow \theta^*` a.s. then
+   :math:`\lambda_n \rightarrow \lambda(\theta^*)` a.s. which completes
+   the proof. ◻
+
+.. container:: lemma
+
+   Under assumptions `[bounded_value] <#bounded_value>`__ and
+   `[existance_of_policy] <#existance_of_policy>`__, the fixed point of
+   Theorem `[thm:convergence] <#thm:convergence>`__ is a feasible
+   solution.
+
+.. container:: proof
+
+   *Proof.* The proof is obtained by a simple extension to that of
+   Theorem `[thm:convergence] <#thm:convergence>`__. Assumption
+   `[existance_of_policy] <#existance_of_policy>`__ states that any
+   local minima :math:`\pi_\theta` of :math:`J^\pi_C` satisfies the
+   constraints, e.g. :math:`J^C_{\pi_\theta} \leq \alpha`; additionally,
+   :raw-latex:`\cite{lee2017first}` show that first order methods such
+   as gradient descent, converge almost surely to a local minima
+   (avoiding saddle points and local maxima). Hence for
+   :math:`\lambda_\text{max} = \infty` (unbounded Lagrange multiplier),
+   the process converges to a fixed point
+   :math:`(\theta^*(\lambda^*), \lambda^*)` which is a feasible
+   solution. ◻
+
+.. _reward-constrained-policy-optimization-1:
+
+Reward Constrained Policy Optimization
+--------------------------------------
+
+RCPO is an Actor-Critic based approach. The orignal use of the critic
+was for variance reduction, it also enables training using a finite
+number of samples (as opposed to Monte-Carlo sampling). But in CMDP
+setting, the general constraints are not ensured to satisfy the
+recursive property required to train a critic. Therefore, we need to
+reconstruct the actor and critic so that the system becomes
+constraint-aware and has the ability to train iteratively.
+
+Here we define the discounted penalty value in analogy to the value
+function :math:`V^\pi (s)`:
+
+.. container:: definition
+
+   The value of the discounted (guiding) penalty is defined as:
+
+   .. math:: V^\pi_{C_\gamma} (s) \triangleq \mathbb{E}^\pi \left[\sum_{t=0}^\infty \gamma^t c (s_t, a_t) | s_0 = s \right]  .
+
+After that, we incorporate the discounted penalty value function into
+the reward function:
+
+.. container:: definition
+
+   The penalized reward functions are defined as:
+
+   .. math::
+
+      \begin{aligned}
+              \hat{r} (\lambda, s, a) &\triangleq r(s, a) - \lambda c (s, a),  \label{eqn:augmented_reward_function} \\
+              \hat V^\pi (\lambda, s) &\triangleq \mathbb{E}^\pi \left[ \sum_{t=0}^\infty \gamma^t \hat r (\lambda, s_t, a_t) | s_0 = s \right] \\
+              &= \mathbb{E}^\pi \left[ \sum_{t=0}^\infty \gamma^t \left( r (s_t, a_t) - \lambda c (s_t, a_t) \right) | s_0 = s \right] = V^\pi_R (s) - \lambda V^\pi_{C_\gamma} (s) .  \label{eqn:augmented_v_function}
+          
+      \end{aligned}
+
+By defining the penalized reward functions, we can utilize the penalties
+as guiding signals to guide the policy towards a constraint satisfying
+one, and it can be estimated using TD-learning critic. We denote a
+three-timescale (Constrained Actor Critic) process, in which the actor
+and critic are updated following
+(`[eqn:augmented_v_function] <#eqn:augmented_v_function>`__) and
+:math:`\lambda` is updated following
+(`[eqn:lambda_gradient] <#eqn:lambda_gradient>`__), as the ‘Reward
+Constrained Policy Optimization’ (RCPO) algorithm:
+
+-  **Critic update:**
+
+   .. math:: v_{k+1} = v_k - \eta_3 (k) \left[\partial (\hat r + \gamma \hat V(\lambda, s'; v_k) - \hat V(\lambda, s; v_k))^2 / \partial v_k\right]
+
+-  **Actor update:**
+
+   .. math:: \theta_{k+1} = \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \hat V(\lambda, s_t; v_k) \right]]
+
+-  **Lagrange multiplier update:**
+
+   .. math:: \lambda_{k+1} = \Gamma_\lambda [\lambda_k + \eta_1 (k) ( \mathbb{E}^{\pi_{\theta(\lambda_k)}}_{s \sim \mu} [C (s)] - \alpha )]
+
+Here learning rates :math:`\eta_1 (k) < \eta_2(k) < \eta_3(k)`. That is,
+RCPO uses a multi-timescale approach; on the fast timescale an
+alternative, discounted, objective is estimated using a TD-critic; on
+the intermediate timescale the policy is learned using policy gradient
+methods; and on the slow timescale the penalty coefficient
+:math:`\lambda` is learned by ascending on the original constraint.
+
+Convergence guarantee
+---------------------
+
+.. container:: theorem
+
+   Denote by
+   :math:`\Theta = \{ \theta : J^C_{\pi_\theta} \leq \alpha \}` the set
+   of feasible solutions and the set of local-minimas of
+   :math:`J_{C_\gamma}^{\pi_\theta}` as :math:`\Theta_\gamma`. Assuming
+   that :math:`\Theta_\gamma \subseteq \Theta` then the ‘Reward
+   Constrained Policy Optimization’ (RCPO) algorithm converges almost
+   surely to a fixed point
+   :math:`\left(\theta^*(\lambda^*, v^*), v^*(\lambda^*), \lambda^*\right)`
+   which is a feasible solution (e.g. :math:`\theta^* \in \Theta`).
+
+.. container:: proof
+
+   *Proof.* As opposed to Theorem
+   `[thm:convergence] <#thm:convergence>`__, in this case we are
+   considering a three-timescale stochastic approximation scheme (the
+   previous Theorem considered two-timescales). The proof is similar in
+   essence to that of :raw-latex:`\cite{prashanth2016variance}`.
+
+   The full process is described as follows:
+
+   .. math::
+
+      \begin{aligned}
+          \lambda_{k+1} &= \Gamma_\lambda [\lambda_k + \eta_1 (k) ( \mathbb{E}^{\pi_{\theta(\lambda_k)}}_{s \sim \mu} [C (s)] - \alpha )] \\
+          \theta_{k+1} &= \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \hat V(\lambda, s_t; v_k) \right]] \\
+          v_{k+1} &= v_k - \eta_3 (k) \left[\partial (\hat r + \gamma \hat V(\lambda, s'; v_k) - \hat V(\lambda, s; v_k))^2 / \partial v_k\right]
+      \end{aligned}
+
+   **Step 1:** The value :math:`v_k` runs on the fastest timescale,
+   hence it observes :math:`\theta` and :math:`\lambda` as static. As
+   the TD operator is a contraction we conclude that
+   :math:`v_k \rightarrow v(\lambda, \theta)`.
+
+   **Step 2:** For the policy recursion :math:`\theta_k`, due to the
+   timescale differences, we can assume that the critic :math:`v` has
+   converged and that :math:`\lambda` is static. Thus as seen in the
+   proof of Theorem `[thm:convergence] <#thm:convergence>`__,
+   :math:`\theta_k` converges to the fixed point
+   :math:`\theta(\lambda, v)`.
+
+   **Step 3:** As shown previously (and in
+   :raw-latex:`\cite{prashanth2016variance}`),
+   :math:`(\lambda_n, \theta_n, v_n) \rightarrow (\lambda(\theta^*), \theta^*, v(\theta^*))`
+   a.s.
+
+   Denoting by
+   :math:`\Theta = \{ \theta : J^C_{\pi_\theta} \leq \alpha \}` the set
+   of feasible solutions and the set of local-minimas of
+   :math:`J_{C_\gamma}^{\pi_\theta}` as :math:`\Theta_\gamma`. We recall
+   the assumption stated in Theorem
+   `[theorem_discounted_constraint] <#theorem_discounted_constraint>`__:
+
+   .. container:: assumption
+
+      :math:`\Theta_\gamma \subseteq \Theta`.
+
+   Given that the assumption above holds, we may conclude that for
+   :math:`\lambda_\text{max} \rightarrow \infty`, the set of stationary
+   points of the process are limited to a sub-set of feasible solutions
+   of (`[constrained_mdp_dual] <#constrained_mdp_dual>`__). As such the
+   process converges a.s. to a feasible solution.
+
+   We finish by providing intuition regarding the behavior in case the
+   assumptions do not hold.
+
+   #. **Assumption** `[existance_of_policy] <#existance_of_policy>`__
+      **does not hold:** As gradient descent algorithms descend until
+      reaching a (local) stationary point. In such a scenario, the
+      algorithm is only ensured to converge to stationary solution, yet
+      said solution is not necessarily a feasible one.
+
+      As such we can only treat the constraint as a regularizing term
+      for the policy in which :math:`\lambda_\text{max}` defines the
+      maximal regularization allowed.
+
+   #. **Assumption**
+      `[asm:sub_set_constraint] <#asm:sub_set_constraint>`__ **does not
+      hold:** In this case, it is not safe to assume that the gradient
+      of (`[per_state_constraint] <#per_state_constraint>`__) may be
+      used as a guide for solving
+      (`[constrained_mdp] <#constrained_mdp>`__). A Monte-Carlo approach
+      may be used to approximate the gradients, however this does not
+      enjoy the benefits of reduced variance and smaller samples (due to
+      the lack of a critic).
+
+    ◻
+
+The assumption in Theorem
+`[theorem_discounted_constraint] <#theorem_discounted_constraint>`__
+demands a specific correlation between the guiding penalty signal
+:math:`C_\gamma` and the constraint :math:`C`. Consider a robot with an
+average torque constraint. A policy which uses 0 torque at each
+time-step is a feasible solution and in turn is a local minimum of both
+:math:`J_C` and :math:`J_{C_\gamma}`. If such a policy is reachable from
+any :math:`\theta` (via gradient descent), this is enough in order to
+provide a theoretical guarantee such that :math:`J_{C_\gamma}` may be
+used as a guiding signal in order to converge to a fixed-point, which is
+a feasible solution.
+
+.. [1]
+   When Assumption `[existance_of_policy] <#existance_of_policy>`__
+   holds, :math:`\lambda_\text{max}` can be set to :math:`\infty`.

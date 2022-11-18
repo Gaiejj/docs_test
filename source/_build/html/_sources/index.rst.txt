@@ -1,0 +1,46 @@
+Welcome to OmniSafe's documentation!
+====================================
+.. image:: images/logo.png
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Documentation:
+
+   User Documentation/Introduction
+   User Documentation/Installation
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Introduction to BaseRL:
+
+   Introduction to BaseRL/mdp_docs
+   Introduction to BaseRL/pg_docs
+   Introduction to BaseRL/npg_docs
+   Introduction to BaseRL/trpo_docs
+   Introduction to BaseRL/ppo_docs
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Introduction to SafeRL:
+
+   Introduction to SafeRL/cpo_docs
+   Introduction to SafeRL/pcpo_docs
+   Introduction to SafeRL/rcpo_docs
+   Introduction to SafeRL/focops_docs
+   Introduction to SafeRL/lag_docs
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Quick Start For OmniSafe:
+
+   Quick Start For OmniSafe/logger
+   Quick Start For OmniSafe/multi_process
+   Quick Start For OmniSafe/run_utils
+   Quick Start For OmniSafe/visualization
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

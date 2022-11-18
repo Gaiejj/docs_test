@@ -1,0 +1,452 @@
+`TRPO-Lagrangian and PPO-Lagrangian <https://cdn.openai.com/safexp-short.pdf>`__
+================================================================================
+
+Introduction of algorithm
+-------------------------
+
+Background
+~~~~~~~~~~
+
+In the previous introduction of the algorithm, we know that SafeRL
+mainly solves the constraint optimization problem of CMDP. However,
+constrained optimization problems tend to be more difficult to solve
+than unconstrained optimization problems. Therefore, a natural idea is
+to convert a constrained optimization problem into an unconstrained
+optimization problem and then solve it using classical optimization
+algorithms such as stochastic gradient descent. **Lagrangian methods**
+is a method of solving constraint problems that are widely used in
+machine learning. By using adaptive penalty coefficients to enforce
+constraints, Lagrangian methods convert the solution of a constrained
+optimization problem to the solution of an unconstrained optimization
+problem. In the body section we will briefly introduce Lagrangian
+methods and give Corresponding implementations in TRPO and PPO. TRPO is
+the algorithm we introduced earlier, if you lack understanding of it, it
+doesn’t matter. Please read the TRPO tutorial we wrote, you will soon
+understand how it works. PPO is a derivative variant of TRPO, and you
+may not know much about it yet, but we’ll go into more detail in the
+body section. At the same time, if you are new to Lagrangian methods, we
+give the specific mathematical derivation in the appendix. Read the
+appendix in detail and you will gain an idea about the algorithm for
+solving multi-objective optimization problems.
+
+Target
+~~~~~~
+
+As we mentioned in the previous chapters, the optimization problem of
+CMDPs can be expressed as:
+
+.. math:: \underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{1}
+
+.. math:: s.t. \quad\eta_{C}(\pi)\le d
+
+where :math:`\prod_{\theta}\subseteq\prod` denotes the set of
+parametrized policies with parameters :math:`\theta`. In local policy
+search for CMDPs, we additionally require policy iterates to be feasible
+for the CMDP, so instead of optimizing over :math:`\prod_{\theta}`,
+algorithm should optimize over :math:`\prod_{\theta}\cap\prod_{C}`.
+Specifically, for the TRPO and PPO algorithms we use in this article,
+constraints on the differences between old and new policies should also
+be added. To solve this constraint problem, please read the tutorial on
+TRPO and will not repeat it here. The final optimization goals are as
+follows:
+
+.. math:: \pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{2}
+
+.. math:: s.t. \quad\eta_{C}(\pi)\le d\\ D(\pi,\pi_k)\le\delta
+
+where :math:`D` is some distance measure and :math:`\delta` is the step
+size.
+
+Key Equations
+~~~~~~~~~~~~~
+
+Here we will show you the main contents of Lagrangian methods and PPO,
+please refer to the appendix for a detailed proof of these theories.This
+section is divided by three parts as below:
+
+-  Lagrangian methods.
+-  PPO.
+
+Before we get into the first part, we’ll give some of the meaning of the
+basic symbols in reinforcement learning so that you can better
+understand the formulas presented below
+
++--------------------------+--------------------------------------------------+
+| Symbol                   | Description                                      |
++==========================+==================================================+
+| :math:`s`                | state                                            |
++--------------------------+--------------------------------------------------+
+| :math:`a`                | action                                           |
++--------------------------+--------------------------------------------------+
+| :math:`R(s,a,s^{'})`     | reward function                                  |
++--------------------------+--------------------------------------------------+
+| :math:`\gamma`           | discount factor                                  |
++--------------------------+--------------------------------------------------+
+| :math:`Q^{\pi}(s,a)`     | state-action value function                      |
++--------------------------+--------------------------------------------------+
+| :math:`V^{\pi}(s)`       | state value functions                            |
++--------------------------+--------------------------------------------------+
+| :math:`A^{\pi}(s,a)`     | advantage functions                              |
++--------------------------+--------------------------------------------------+
+| :math:`A_{C}^{\pi}(s,a)` | advantage functions for costs                    |
++--------------------------+--------------------------------------------------+
+| :math:`\pi(a\vert s)`    | the probability of selecting action a in state s |
++--------------------------+--------------------------------------------------+
+| :math:`\theta`           | the parameters for policy :math:`\pi`            |
++--------------------------+--------------------------------------------------+
+
+Lagrangian methods
+^^^^^^^^^^^^^^^^^^
+
+Constrained MDP’s are often solved using the Lagrange methods. In
+Lagrange methods, the CMDP is converted into an equivalent unconstrained
+problem.. In addition to the objective, a penalty term is added for
+infeasibility, thus making infeasible solutions sub-optimal. Given a
+CMDP :math:`(1)`, the unconstrained problem can be written as:
+
+.. math:: \underset{\lambda\ge 0}{min}\,\underset{\theta}{max}\,G(\lambda,\theta)=\underset{\lambda\ge 0}{min}\,\underset{\theta}{max}\,[(1-\lambda)\eta(\pi)]\tag{3}
+
+where :math:`G` is the Lagrangian and :math:`\lambda\ge 0` is the
+Lagrange multiplier (a penalty coefficient). Notice, as :math:`\lambda`
+increases, the solution to :math:`(3)` converges to that of :math:`(2)`.
+This suggests a two-timescale approach: on the faster timescale, θ is
+found by solving :math:`(3)`, while on the slower timescale, λ is
+increased until the constraint is satisfied. The goal is to find a
+saddle point :math:`(\theta^{*}(\lambda^{*}),\lambda^{*})` of
+:math:`(3)`, which is a feasible solution.(A feasible solution of the
+CMDP is a solution which satisfies :math:`\eta_C(\pi)\le d`) We’ll give
+a more intuitive explanation of Lagrangian methods, which may be less
+rigorous, but will help beginners better understand how it works. In the
+classical strategy gradient descent algorithm, we train the agent in the
+direction of maximizing the reward. If a certain action :math:`a` in
+state :math:`s` can bring a relatively higher reward, we increase the
+probability that the agent will choose action :math:`a` under :math:`s`,
+and conversely, we will reduce this probability.Lagrangian methods just
+adds two extra steps to the above process. One is to make adjustments to
+the reward function, and if the agent’s actions violate the constraint,
+the reward will be reduced accordingly. The second is a slow update of
+the penalty factor. If the agent violates fewer constraints, the penalty
+coefficient will gradually decrease, and conversely, it will gradually
+increase.
+
+PPO
+^^^
+
+`Proximal Policy Optimization(PPO) <https://arxiv.org/abs/1707.06347>`__
+is a reinforcement learning method inheriting some of the benefits of
+trust region policy optimization (TRPO), but are much simpler to
+implement. PPO share the same target with TRPO: how can we take a as big
+as improvement step on a policy update using the data we already have,
+without stepping so far that we accidentally cause performance collapse?
+Instead of solving this problem with a complex second-order method as
+TRPO do, PPO use a few other tricks to keep new policies close to old.
+There are two primary variants of PPO: **PPO-Penalty** and **PPO-Clip**.
+
+PPO-Penalty
+'''''''''''
+
+TRPO actually suggests using a penalty instead of a constraint to solve
+the unconstrained optimization problem:
+
+.. math:: \underset{\theta}{max} E[\frac{\pi_{\theta}(a|s)}{\pi_{\theta_{old}}(a|s)}\hat A^{\pi}(s,a)-\beta D_{KL}[\pi_{\theta_{old}}(*|s),\pi_{\theta}(*|s)]]\tag{4}
+
+However, experiments show that it is not sufficient to simply choose a
+fixed penalty coefficient :math:`\beta` and optimize the penalized
+objective Equation :math:`(4)` with SGD(stochastic gradient descent), so
+finally TRPO abandoned this method. PPO-Penalty use an approach named
+Adaptive KL Penalty Coefficient to solve above problem, thus making
+:math:`(4)` perform well in experiment. In the simplest instantiation of
+this algorithm, PPO-Penalty perform the following steps in each policy
+update: \* Using several epochs of minibatch SGD, optimize the
+KL-penalized objective shown as :math:`(4)` \* Compute
+:math:`D_{KL}= E[KL[\pi_{\theta_{old}}(*|s),\pi_{\theta}(*|s)]]` \* If
+:math:`D_{KL}\le \delta/1.5`, :math:`\beta \leftarrow \beta/2` \* If
+:math:`D_{KL}\ge \delta\times1.5`, :math:`\beta \leftarrow \beta\times2`
+
+The updated :math:`\beta` is used for the next policy update.
+
+PPO-Clip
+''''''''
+
+Let :math:`r(\theta)` denote the probability ratio
+:math:`r(\theta)=\frac{\pi_{\theta}(a|s)}{\pi_{\theta_{old}}(a|s)}`,
+PPO-Clip rewrite the surrogate objective as:
+
+.. math:: \eta^{CLIP}(\pi)=E[min(r(\theta) \hat A(s,a),clip(r(\theta),1-\varepsilon,1+\varepsilon)\hat A(s|a))]\tag{5}
+
+in which :math:`\varepsilon` is a (small) hyperparameter which roughly
+says how far away the new policy is allowed to go from the old. This is
+a very complex fomula, and it’s diffcult to tell at first glance what
+it’s doing, or how it helps keep the new policy close to the old policy.
+To help you better understand the above expression, let
+:math:`L(s,a,\theta)` denote
+:math:`r(\theta) \hat A(s,a),clip(r(\theta),1-\varepsilon,1+\varepsilon)\hat A(s|a)`
+, we’ll simplify the formula in two cases： \* When Advantage is
+negative, we can rewrite :math:`L(s,a,\theta)` as:
+
+.. math:: L(s,a,\theta)=max(r(\theta),(1-\varepsilon))\hat A(s,a)
+
+\* When Advantage is negative, we can rewrite :math:`L(s,a,\theta)` as:
+
+.. math:: L(s,a,\theta)=max(r(\theta),(1+\varepsilon))\hat A(s,a)
+
+With above cliped surrogate function and :math:`(5)`, PPO-Clip can
+guarantee the new policy would not update so far away from the old. In
+experiment, PPO-Clip perform better that PPO-Penalty. You may still have
+a question: Why are we using :math:`\hat A` instead of :math:`A` and
+what is that mean? Actually this is a trick named generalized advantage
+estimator(GAE). Almost all advanced reinforcement learning algorithms
+use GAE technique to make more efficient estimates of :math:`A`.
+:math:`\hat A` is the GAE version of :math:`A`. If you are not famliar
+with GAE, it does not matter. A detailed introduction of GAE is provided
+in appendix and We believe you will quickly understand it.
+
+Summary
+^^^^^^^
+
+In this section we briefly describe how to convert a constrained
+optimization problem into an unconstrained optimization problem through
+the Lagrange method, and briefly introduce the PPO algorithm. In the
+next section, we will look at how to combine the Lagrange method with
+TRPO or PPO to get our final optimization algorithm.
+
+Practical Implementation
+------------------------
+
+In fact, as long as you understand the TRPO, PPO, and Lagrange methods,
+the implementation process will be very simple. The introduction of the
+Lagrange method into TARP and PPO requires only two steps to make
+changes: \* Policy update \* Lagrange multiplier update
+
+Policy update
+~~~~~~~~~~~~~
+
+Previously, in TRPO and PPO, we used to have the agent sample a series
+of data from the environment, and at the end of the episode, use this
+data to update the agent several times, as described in :math:`(1)`.
+With the addition of the Lagrange method, we need to make a change to
+the original, as it is shown as below:
+
+.. math:: \underset{\pi\in\prod_{\theta}}{max}\,(1-\lambda)\eta(\pi)\tag{6}
+
+.. math:: s.t. \,D(\pi,\pi_k)\le\delta
+
+In a word, we only need to punish the agent with its reward by
+:math:`\lambda` with each step of updates. In fact, this is just a minor
+change made on TRPO and PPO.
+
+Lagrange multiplier update
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After all rounds of policy updates to the agent are complete, We will
+perform an update on the Lagrange multiplier, that is:
+
+.. math:: \underset{\lambda}{min}\,(1-\lambda)\eta(\pi)\tag{7}
+
+.. math:: s.t. \,\lambda \ge0
+
+Specifically, On the :math:`k^{th}` update, the above equation is often
+written as below in the actual calculation process:
+
+.. math:: \lambda_{k+1}=max(\lambda_k+lr_{\lambda}(\eta_C(\pi)-d),0)
+
+where :math:`lr_{\lambda}` is the learning rate of :math:`\lambda`.
+
+conclusion
+~~~~~~~~~~
+
+Ultimately, we only need to add the above two steps to the TRPO and PPO,
+then we will get the TRPO-lag and the PPO-lag. **Please attention**. In
+pratice, We often need to manually set the initial value of
+:math:`\lambda` as well as the learning rate. Unfortunately, Lagrange
+algorithms are algorithms that are sensitive to hyperparameter
+selection. If the initial value of A or learning rate is chosen to be
+large, the agent may suffer from a low reward, while on the contray, it
+may violate the constriants. So we often struggle to choose a compromise
+hyperparameter to balance reward and constraints.
+
+Reference
+---------
+
+-  `Constrained Policy
+   Optimization <https://arxiv.org/abs/1705.10528>`__
+-  `A Natural Policy
+   Gradient <https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf>`__
+-  `Trust Region Policy
+   Optimization <https://arxiv.org/abs/1502.05477>`__
+-  `Constrained Markov Decision
+   Processes <https://www.semanticscholar.org/paper/Constrained-Markov-Decision-Processes-Altman/3cc2608fd77b9b65f5bd378e8797b2ab1b8acde7>`__
+-  `Generalized Advantage
+   Estimation <https://arxiv.org/pdf/1506.02438.pdf>`__
+
+Appendix
+--------
+
+.. _lagrangian-methods-1:
+
+Lagrangian methods
+~~~~~~~~~~~~~~~~~~
+
+In this section, we will first introduce you to the theorem of Lagrange
+problem and Lagrange dual problem. Subsequently, we will show that when
+optimizing the conditions of the problem with strong duality, the
+solution of the Lagrange problem can be transformed into the solution of
+the Lagrange dual problem, and thus we get the equation :math:`(3)` in
+the body section. #### Introduction of Lagrangian function Consider a
+general optimization problem (called as primal problem)
+
+.. math:: \underset{x}{min}\,f(x)\tag{1}
+
+.. math:: s.t.\,h_i(x)\le 0,\,i=1,...m
+
+.. math:: l_j(x)=0,\,j=1,...r
+
+We define its Lagrangian as
+
+.. math:: G(x,u,v)=f(x)+\sum_{i=1}^mu_ih_i(x)+\sum_{j=1}^rv_jl_j(x)\tag{2}
+
+Lagrange multipliers :math:`u\in R^m`, :math:`v\in R^r`.
+
+Introduction of Lagrangian dual function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Given a Lagrangian, we define its Lagrange dual function as:
+:math:`g(u,v)=\underset x{inf}G(x,u,v)` It is worth mentioning that the
+infimum here does not require x to be taken in the feasible set.
+
+Lemma1
+^^^^^^
+
+The optimal value of the primal problem, named as :math:`f^{*}`,
+satisfies:
+
+.. math:: f^{*}=\underset{x}{inf}\underset{u\ge 0,v}{sup}G(x,u,v)\tag{3}
+
+**Proof.** First considering feasible :math:`x` (marked as
+:math:`x\in C`), we have :math:`f^{*}` =
+:math:`inf_{x\in C}sup_{u\ge 0,v}L(x,u,v)`. Second considering
+non-feasible :math:`x`, since :math:`sup_{u\ge 0,v}L(x,u,v)=\infty` for
+any :math:`x\notin C`,
+:math:`inf_{x\notin C}sup_{u\ge 0,v}L(x,u,v)=\infty`. In total,
+:math:`f^{*}=inf_xsum_{u\ge 0,v}L(x,u,v)`.
+
+Lemma2
+^^^^^^
+
+The optimal value of the dual problem, named as :math:`g^{*}`,
+satisfies:
+
+.. math:: g^{*}=\underset{u\ge 0,v}{sup}\underset{x}{inf}G(x,u,v)\tag{4}
+
+**Proof.** From the definitions, we have
+
+.. math:: g^{*}=\underset{u\ge 0,v}{sup}g(u,v)=\underset{u\ge 0,v}{sup}\underset{x}{inf}G(x,u,v)
+
+\ Although the primal problem is not required to be convex, the dual
+problem is always convex.
+
+.. _conclusion-1:
+
+Conclusion
+^^^^^^^^^^
+
+In convex optimization theory, if the problem satisfies the strong
+duality condition, then the solution of the prime problem is equivalent
+to the solution of the dual problem. Then we obtain:
+
+.. math:: f^{*}=g^{*}\quad with\,strong\,duality\tag{5}
+
+Generalized Advantage Estimation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In policy gradient method, an update step should increase the
+probability of better-than-average actions and decrease the probability
+of worse-than average actions. It corresponds to the optimization
+problem:
+
+.. math:: max\,E[\sum_0^{\infty}\psi_t\nabla_{\theta}log\pi_{\theta}(a_t|s_t)]
+
+So, an expected reward function is needed to measure whether or not the
+action is better or worse than the policy’s default behavior. At each
+timestep :math:`t`, We tend to have two ways to choose it: \* TD-based
+method
+
+.. math::
+
+
+   V^{\pi}(s_t)=E_{\tau\sim\pi}(\sum_{l=0}^{\infty}\gamma^lr_{t+l})\quad Q^{\pi}(s_t,a_t)=E_{\tau\sim\pi}(\sum_{l=0}^{\infty}\gamma^lr_{t+l})
+
+.. math:: \psi_t=A^{\pi}(s_t,a_t)=Q^{\pi}(s_t,a_t)-V^{\pi}(s_t)\tag{6}
+
+where :math:`\gamma` is the discount factor used in discounted
+formulations of MDPs. Since the value function of TD-based method is
+estimated by a parameterized neural network, it is biased, but because
+Method A involves fewer parameters, its variance is small. \* MC-based
+method
+
+.. math:: \psi_t=\sum_{t^{'}=t}^{\infty}r_{t^{'}}\tag{7}
+
+MC-based method has no bias because it directly estimates the actual
+value of reward, but it is more biased because reward is a
+high-dimensional random variable.
+
+There is no way to get an estimation method that has both small variance
+and unbiased characteristics. But we want to have a way of estimating
+balance bias and variance. One naïve idea is to use MC-based estimation
+in part and TD-based estimation in part. That’s why GAE was proposed.
+Next we will show how to get an advantage function :math:`\hat A^{GAE}`
+by GAE method. First, define :math:`d^V_t=r_t+\gamma V(s_{t+1})-V(s_t)`,
+where :math:`V` is an estimator for :math:`V^{\pi}`. Next, let us
+consider taking the sum of :math:`k` of these :math:`d` terms, which we
+will denote by :math:`\hat A^{(k)}_t`:
+
+.. math::
+
+
+   \hat{A}_t^{(1)}=d_t^V=-V\left(s_t\right)+r_t+\gamma V\left(s_{t+1}\right)
+
+.. math::
+
+
+   \hat{A}_t^{(2)}=d_t^V+\gamma d_{t+1}^V =-V\left(s_t\right)+r_t+\gamma r_{t+1}+\gamma^2 V\left(s_{t+2}\right)
+
+.. math::
+
+
+   \hat{A}_t^{(3)}=d_t^V+\gamma d_{t+1}^V+\gamma^2 d_{t+2}^V=-V\left(s_t\right)+r_t+\gamma r_{t+1}+\gamma^2 r_{t+2}+\gamma^3 V\left(s_{t+3}\right)
+
+.. math::
+
+
+   \hat{A}_t^{(k)}=\sum_{l=0}^{k-1} \gamma^l d_{t+l}^V=-V\left(s_t\right)+r_t+\gamma r_{t+1}+\cdots+\gamma^{k-1} r_{t+k-1}+\gamma^k V\left(s_{t+k}\right)
+
+The generalized advantage estimator :math:`GAE(\gamma,\lambda)` is
+defined as the exponentially-weighted average of these estimators:
+
+.. math::
+
+
+   \begin{aligned}
+   \hat{A}_t^{(\gamma, \lambda)}=&(1-\lambda)\left(\hat{A}_t^{(1)}+\lambda \hat{A}_t^{(2)}+\lambda^2 \hat{A}_t^{(3)}+\ldots\right) \\
+   =&(1-\lambda)\left(d_t^V+\lambda\left(d_t^V+\gamma d_{t+1}^V\right)+\lambda^2\left(d_t^V+\gamma d_{t+1}^V+\gamma^2 d_{t+2}^V\right)+\ldots\right) \\
+   =&(1-\lambda)\left(d_t^V\left(1+\lambda+\lambda^2+\ldots\right)+\gamma d_{t+1}^V\left(\lambda+\lambda^2+\lambda^3+\ldots\right)\right.\\
+   &\left.\quad+\gamma^2 d_{t+2}^V\left(\lambda^2+\lambda^3+\lambda^4+\ldots\right)+\ldots\right) \\
+   =&(1-\lambda)\left(d_t^V\left(\frac{1}{1-\lambda}\right)+\gamma d_{t+1}^V\left(\frac{\lambda}{1-\lambda}\right)+\gamma^2 d_{t+2}^V\left(\frac{\lambda^2}{1-\lambda}\right)+\ldots\right)
+   \end{aligned}
+
+.. math::
+
+
+   \hat{A}_t^{(\gamma, \lambda)}=\sum_{l=0}^{\infty}(\gamma \lambda)^l d_{t+l}^V\tag{8}
+
+There are two notable special cases of this formula, obtained by setting
+:math:`\lambda =0` and :math:`\lambda=1`.
+
+.. math:: GAE(\gamma,0):\hat A_t=d_t=r_t+\gamma V(s_{t+1})-V(s_t)\tag{9}
+
+.. math:: GAE(\gamma,1):\hat A_t=\sum_{l=0}^{\infty}(\gamma ^ld_{t+l})=\sum_{l=0}^{\infty}(\gamma ^lr_{t+l})-V(s_t)\tag{10}
+
+If :math:`\lambda=0`, GAE is a TD-based method, while :math:`\lambda=1`
+that is a MC-based method. The generalized advantage estimator for
+:math:`0\lt\lambda\lt 1` makes a compromise between bias and variance,
+controlled by parameter :math:`\lambda`.

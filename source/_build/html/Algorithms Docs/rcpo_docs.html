@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reward Constrained Policy Optimization &mdash; OmniSafe 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="First Order Constrained Optimization in Policy Space" href="focops_docs.html" />
+    <link rel="prev" title="TRPO-Lagrangian and PPO-Lagrangian" href="lag.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> OmniSafe
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Introduction.html">Introudction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">OmniSafe’s Algorithms documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="trpo_docs.html">Trust Region Policy Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpo_docs.html">Constrained Policy Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lag.html">TRPO-Lagrangian and PPO-Lagrangian</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Reward Constrained Policy Optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#target">Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lagrange-relaxation">Lagrange relaxation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reward-constrained-policy-optimization-1">Reward Constrained Policy Optimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#convergence-guarantee">Convergence guarantee</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="focops_docs.html">First Order Constrained Optimization in Policy Space</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pcpo_docs.html">Projection-Based Constrained Policy Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OmniSafe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">OmniSafe’s Algorithms documentation</a> &raquo;</li>
+      <li>Reward Constrained Policy Optimization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/Algorithms Docs/rcpo_docs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="reward-constrained-policy-optimization">
+<h1>Reward Constrained Policy Optimization<a class="headerlink" href="#reward-constrained-policy-optimization" title="Permalink to this heading"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<p>Involving constraints is a natural and consistent approach to ensure a
+satisfying behavior without the need for manually selecting the penalty
+coefficients. Reward constrained policy optimization
+ (RCPO) incorporates the constraints as a
+penalty signal into the reward function, as guidance for the policy
+towards a constraint satisfying solution. And RCPO can be applied to
+problems with general constraints.</p>
+</section>
+<section id="target">
+<h2>Target<a class="headerlink" href="#target" title="Permalink to this heading"></a></h2>
+<p>In CMDPs, a constraint of the state <span class="math notranslate nohighlight">\(s_t\)</span> is a function of
+penalties start from <span class="math notranslate nohighlight">\(s_t\)</span> to <span class="math notranslate nohighlight">\(s_N\)</span>:
+<span class="math notranslate nohighlight">\(C(s_t) = F(c (s_t, a_t), ..., c (s_N, a_N))\)</span>, and is required to
+be under a given threshold <span class="math notranslate nohighlight">\(d\)</span>. A constraint may be a discounted
+sum (similar to the reward-to-go), the average sum and more. Here we
+refer to the collection of these constraints as general constraints.
+RCPO considers single-constraint case. The optimization objective:</p>
+<div class="math notranslate nohighlight">
+\[\label{constrained_mdp}
+\max_{\pi \in \Pi} J^R_{\pi} \texttt{ , s.t. }  J^C_{\pi} \leq \alpha  ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(J_\pi^C\)</span> denotes the expectation over the constraint, as we
+mentioned in notations.</p>
+</section>
+<section id="lagrange-relaxation">
+<h2>Lagrange relaxation<a class="headerlink" href="#lagrange-relaxation" title="Permalink to this heading"></a></h2>
+<p>CMDP’s are often solved using the Lagrange relaxation technique
+. As before, in this work, we
+still use notations <span class="math notranslate nohighlight">\(\theta\)</span>, <span class="math notranslate nohighlight">\(\pi_\theta\)</span> to denote the
+parameters of the policy and the parameterized policy, respectively.
+Given a CMDP (<a class="reference external" href="#constrained_mdp">[constrained_mdp]</a>), the
+unconstrained problem can be expressed by:</p>
+<div class="math notranslate nohighlight">
+\[\label{constrained_mdp_dual}
+    \min_{\lambda \geq 0} \max_\theta L (\lambda, \theta) = \min_{\lambda \geq 0} \max_\theta \left[ J^R_{\pi_\theta} - \lambda \cdot (J^C_{\pi_\theta} - d) \right]  ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(L\)</span> is the Lagrangian and <span class="math notranslate nohighlight">\(\lambda \geq 0\)</span> is the
+Lagrange multiplier. Notice, as <span class="math notranslate nohighlight">\(\lambda\)</span> increases, the solution
+to (<a class="reference external" href="#constrained_mdp_dual">[constrained_mdp_dual]</a>) converges to
+that of (<a class="reference external" href="#constrained_mdp">[constrained_mdp]</a>). This suggests a
+two-timescale approach: on the faster timescale, <span class="math notranslate nohighlight">\(\theta\)</span> is found
+by solving (<a class="reference external" href="#constrained_mdp_dual">[constrained_mdp_dual]</a>), while
+on the slower timescale, <span class="math notranslate nohighlight">\(\lambda\)</span> is increased until the
+constraint is satisfied. The goal is to find a saddle point
+<span class="math notranslate nohighlight">\((\theta^* (\lambda^*), \lambda^*)\)</span> of
+(<a class="reference external" href="#constrained_mdp_dual">[constrained_mdp_dual]</a>), which is a
+feasible solution.</p>
+<p>And we can compute the derivative of the Lagrangian
+<span class="math notranslate nohighlight">\(L(\theta, \lambda)\)</span> with respect to <span class="math notranslate nohighlight">\(\theta\)</span> and
+<span class="math notranslate nohighlight">\(\lambda\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+&amp;\nabla_\theta L (\lambda, \theta) = \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \left[ R(s) - \lambda \cdot C(s) \right]\right]  ,  \label{lagrange_policy_gradient}\\
+&amp;\nabla_{\lambda} L (\lambda, \theta) = -( \mathbb{E}^{\pi_\theta}_{s \sim \mu} [C (s)] - \alpha )  . \label{lambda_update_rule}
+\end{aligned}\end{split}\]</div>
+<p>With the derivatives, we obtain the update steps for <span class="math notranslate nohighlight">\(\lambda\)</span> and
+<span class="math notranslate nohighlight">\(\theta\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\label{eqn:lambda_gradient}
+\lambda_{k+1} = \Gamma_\lambda [\lambda_{k} - \eta_1 (k) \nabla_{\lambda} L (\lambda_k, \theta_k)]  ,\]</div>
+<div class="math notranslate nohighlight">
+\[\label{eqn:theta_gradient}
+\theta_{k+1} = \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta L (\lambda_k, \theta_k)]  ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Gamma_\theta\)</span> is a projection operator, which keeps the
+iterate <span class="math notranslate nohighlight">\(\theta_k\)</span> stable by projecting onto a compact and convex
+set. <span class="math notranslate nohighlight">\(\Gamma_\lambda\)</span> projects <span class="math notranslate nohighlight">\(\lambda\)</span> into the range
+<span class="math notranslate nohighlight">\([0, \lambda_\text{max}\)</span>  <a class="footnote-reference brackets" href="#id3" id="id1">1</a>].</p>
+<p>We make the following assumptions in order to ensure convergence to a
+constraint satisfying policy:</p>
+<div class="assumption docutils container">
+<p>The value <span class="math notranslate nohighlight">\(V^\pi_R (s)\)</span> is bounded for all policies
+<span class="math notranslate nohighlight">\(\pi \in \Pi\)</span>.</p>
+</div>
+<div class="assumption docutils container">
+<p>Every local minima of <span class="math notranslate nohighlight">\(J^C_{\pi_\theta}\)</span> is a feasible
+solution.</p>
+</div>
+<p>Assumption <a class="reference external" href="#existance_of_policy">[existance_of_policy]</a> is the
+minimal requirement in order to ensure convergence, given a general
+constraint, of a gradient algorithm to a feasible solution. Stricter
+assumptions, such as convexity, may ensure convergence to the optimal
+solution; however, in practice constraints are non-convex and such
+assumptions do not hold.</p>
+<div class="assumption docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{aligned}
+\sum_{k=0}^\infty \eta_1 (k) = \sum_{k=0}^\infty \eta_2 (k) = \infty,  \sum_{k=0}^\infty \left( \eta_1 (k) ^2 + \eta_2 (k)^2 \right) &lt; \infty \text{ and } \frac{\eta_1 (k)}{\eta_2 (k)} \rightarrow 0  .
+\end{aligned}\]</div>
+</div>
+<div class="theorem docutils container">
+<p>Under Assumption <a class="reference external" href="#step_sizes">[step_sizes]</a>, as well as the
+standard stability assumption for the iterates and bounded noise
+, the iterates
+<span class="math notranslate nohighlight">\((\theta_n, \lambda_n)\)</span> converge to a fixed point (a local
+minima) almost surely.</p>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> We provide a brief proof for clarity. We refer the reader to
+Chapter 6 of  for a full
+proof of convergence for two-timescale stochastic approximation
+processes.</p>
+<p>Initially, we assume nothing regarding the structure of the
+constraint as such <span class="math notranslate nohighlight">\(\lambda_\text{max}\)</span> is given some finite
+value. The special case in which Assumption
+<a class="reference external" href="#existance_of_policy">[existance_of_policy]</a> holds is handled in
+Lemma
+<a class="reference external" href="#lemma:constraint_satisfying_policy">[lemma:constraint_satisfying_policy]</a>.</p>
+<p>The proof of convergence to a local saddle point of the Lagrangian
+(<a class="reference external" href="#constrained_mdp_dual">[constrained_mdp_dual]</a>) contains the
+following main steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Convergence of :math:`theta`-recursion:</strong> We utilize the fact
+that owing to projection, the <span class="math notranslate nohighlight">\(\theta\)</span> parameter is stable.
+We show that the <span class="math notranslate nohighlight">\(\theta\)</span>-recursion tracks an ODE in the
+asymptotic limit, for any given value of <span class="math notranslate nohighlight">\(\lambda\)</span> on the
+slowest timescale.</p></li>
+<li><p><strong>Convergence of :math:`lambda`-recursion:</strong> This step is similar
+to earlier analysis for constrained MDPs. In particular, we show
+that <span class="math notranslate nohighlight">\(\lambda\)</span>-recursion in
+(<a class="reference external" href="#constrained_mdp_dual">[constrained_mdp_dual]</a>) converges and
+the overall convergence of <span class="math notranslate nohighlight">\((\theta_k, \lambda_k)\)</span> is to a
+local saddle point <span class="math notranslate nohighlight">\((\theta^*(\lambda^*, \lambda^*)\)</span> of
+<span class="math notranslate nohighlight">\(L (\lambda, \theta)\)</span>.</p></li>
+</ol>
+<p><strong>Step 1:</strong> Due to the timescale separation, we can assume that the
+value of <span class="math notranslate nohighlight">\(\lambda\)</span> (updated on the slower timescale) is
+constant. As such it is clear that the following ODE governs the
+evolution of <span class="math notranslate nohighlight">\(\theta\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\label{eqn:theta_ode}
+    \dot \theta_t = \Gamma_\theta (\nabla_\theta L (\lambda, \theta_t))\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Gamma_\theta\)</span> is a projection operator which ensures
+that the evolution of the ODE stays within the compact and convex set
+<span class="math notranslate nohighlight">\(\Theta := \Pi_{i=1}^k \left[ \theta_\text{min}^i, \theta_\text{max}^i \right]\)</span>.</p>
+<p>As <span class="math notranslate nohighlight">\(\lambda\)</span> is considered constant, the process over
+<span class="math notranslate nohighlight">\(\theta\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \theta_{k+1} &amp;= \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta L (\lambda, \theta_k)] \\
+    &amp;= \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \left[ R(s) - \lambda \cdot C(s) \right]\right]]
+\end{aligned}\end{split}\]</div>
+<p>Thus (<a class="reference external" href="#eqn:theta_gradient">[eqn:theta_gradient]</a>) can be seen as
+a discretization of the ODE (<a class="reference external" href="#eqn:theta_ode">[eqn:theta_ode]</a>).
+Finally, using the standard stochastic approximation arguments from
+ concludes step 1.</p>
+<p><strong>Step 2:</strong> We start by showing that the <span class="math notranslate nohighlight">\(\lambda\)</span>-recursion
+converges and then show that the whole process converges to a local
+saddle point of <span class="math notranslate nohighlight">\(L(\lambda, \theta)\)</span>. The process governing the
+evolution of <span class="math notranslate nohighlight">\(\lambda\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \lambda_{k+1} &amp;= \Gamma_\lambda [\lambda_{k} - \eta_1 (k) \nabla_{\lambda} L (\lambda_k, \theta(\lambda_k))] \\
+    &amp;= \Gamma_\lambda [\lambda_k + \eta_1 (k) ( \mathbb{E}^{\pi_{\theta(\lambda_k)}}_{s \sim \mu} [C (s)] - \alpha )]
+\end{aligned}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\theta(\lambda_k)\)</span> is the limiting point of the
+<span class="math notranslate nohighlight">\(\theta\)</span>-recursion corresponding to <span class="math notranslate nohighlight">\(\lambda_k\)</span>, can be
+seen as the following ODE:</p>
+<div class="math notranslate nohighlight">
+\[\label{eqn:ode_lambda}
+    \dot \lambda_t = \Gamma_\lambda (\nabla_\lambda L (\lambda_t, \theta(\lambda_t))) \enspace .\]</div>
+<p>As shown in  chapter 6,
+<span class="math notranslate nohighlight">\((\lambda_n, \theta_n)\)</span> converges to the internally chain
+transitive invariant sets of the ODE
+(<a class="reference external" href="#eqn:ode_lambda">[eqn:ode_lambda]</a>), <span class="math notranslate nohighlight">\(\dot \theta_t =0\)</span>.
+Thus,
+<span class="math notranslate nohighlight">\((\lambda_n, \theta_n) \rightarrow \{ (\lambda(\theta), \theta) : \theta \in \mathbb{R}^k \}\)</span>
+almost surely. Finally, as seen in Theorem 2 of Chapter 2 of
+,
+<span class="math notranslate nohighlight">\(\theta_n \rightarrow \theta^*\)</span> a.s. then
+<span class="math notranslate nohighlight">\(\lambda_n \rightarrow \lambda(\theta^*)\)</span> a.s. which completes
+the proof. ◻</p>
+</div>
+<div class="lemma docutils container">
+<p>Under assumptions <a class="reference external" href="#bounded_value">[bounded_value]</a> and
+<a class="reference external" href="#existance_of_policy">[existance_of_policy]</a>, the fixed point of
+Theorem <a class="reference external" href="#thm:convergence">[thm:convergence]</a> is a feasible
+solution.</p>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> The proof is obtained by a simple extension to that of
+Theorem <a class="reference external" href="#thm:convergence">[thm:convergence]</a>. Assumption
+<a class="reference external" href="#existance_of_policy">[existance_of_policy]</a> states that any
+local minima <span class="math notranslate nohighlight">\(\pi_\theta\)</span> of <span class="math notranslate nohighlight">\(J^\pi_C\)</span> satisfies the
+constraints, e.g. <span class="math notranslate nohighlight">\(J^C_{\pi_\theta} \leq \alpha\)</span>; additionally,
+ show that first order methods such
+as gradient descent, converge almost surely to a local minima
+(avoiding saddle points and local maxima). Hence for
+<span class="math notranslate nohighlight">\(\lambda_\text{max} = \infty\)</span> (unbounded Lagrange multiplier),
+the process converges to a fixed point
+<span class="math notranslate nohighlight">\((\theta^*(\lambda^*), \lambda^*)\)</span> which is a feasible
+solution. ◻</p>
+</div>
+</section>
+<section id="reward-constrained-policy-optimization-1">
+<span id="id2"></span><h2>Reward Constrained Policy Optimization<a class="headerlink" href="#reward-constrained-policy-optimization-1" title="Permalink to this heading"></a></h2>
+<p>RCPO is an Actor-Critic based approach. The orignal use of the critic
+was for variance reduction, it also enables training using a finite
+number of samples (as opposed to Monte-Carlo sampling). But in CMDP
+setting, the general constraints are not ensured to satisfy the
+recursive property required to train a critic. Therefore, we need to
+reconstruct the actor and critic so that the system becomes
+constraint-aware and has the ability to train iteratively.</p>
+<p>Here we define the discounted penalty value in analogy to the value
+function <span class="math notranslate nohighlight">\(V^\pi (s)\)</span>:</p>
+<div class="definition docutils container">
+<p>The value of the discounted (guiding) penalty is defined as:</p>
+<div class="math notranslate nohighlight">
+\[V^\pi_{C_\gamma} (s) \triangleq \mathbb{E}^\pi \left[\sum_{t=0}^\infty \gamma^t c (s_t, a_t) | s_0 = s \right]  .\]</div>
+</div>
+<p>After that, we incorporate the discounted penalty value function into
+the reward function:</p>
+<div class="definition docutils container">
+<p>The penalized reward functions are defined as:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}\begin{aligned}
+        \hat{r} (\lambda, s, a) &amp;\triangleq r(s, a) - \lambda c (s, a),  \label{eqn:augmented_reward_function} \\
+        \hat V^\pi (\lambda, s) &amp;\triangleq \mathbb{E}^\pi \left[ \sum_{t=0}^\infty \gamma^t \hat r (\lambda, s_t, a_t) | s_0 = s \right] \\
+        &amp;= \mathbb{E}^\pi \left[ \sum_{t=0}^\infty \gamma^t \left( r (s_t, a_t) - \lambda c (s_t, a_t) \right) | s_0 = s \right] = V^\pi_R (s) - \lambda V^\pi_{C_\gamma} (s) .  \label{eqn:augmented_v_function}\end{split}\\\end{aligned}\end{aligned}\end{align} \]</div>
+</div>
+<p>By defining the penalized reward functions, we can utilize the penalties
+as guiding signals to guide the policy towards a constraint satisfying
+one, and it can be estimated using TD-learning critic. We denote a
+three-timescale (Constrained Actor Critic) process, in which the actor
+and critic are updated following
+(<a class="reference external" href="#eqn:augmented_v_function">[eqn:augmented_v_function]</a>) and
+<span class="math notranslate nohighlight">\(\lambda\)</span> is updated following
+(<a class="reference external" href="#eqn:lambda_gradient">[eqn:lambda_gradient]</a>), as the ‘Reward
+Constrained Policy Optimization’ (RCPO) algorithm:</p>
+<ul>
+<li><p><strong>Critic update:</strong></p>
+<div class="math notranslate nohighlight">
+\[v_{k+1} = v_k - \eta_3 (k) \left[\partial (\hat r + \gamma \hat V(\lambda, s'; v_k) - \hat V(\lambda, s; v_k))^2 / \partial v_k\right]\]</div>
+</li>
+<li><p><strong>Actor update:</strong></p>
+<div class="math notranslate nohighlight">
+\[\theta_{k+1} = \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \hat V(\lambda, s_t; v_k) \right]]\]</div>
+</li>
+<li><p><strong>Lagrange multiplier update:</strong></p>
+<div class="math notranslate nohighlight">
+\[\lambda_{k+1} = \Gamma_\lambda [\lambda_k + \eta_1 (k) ( \mathbb{E}^{\pi_{\theta(\lambda_k)}}_{s \sim \mu} [C (s)] - \alpha )]\]</div>
+</li>
+</ul>
+<p>Here learning rates <span class="math notranslate nohighlight">\(\eta_1 (k) &lt; \eta_2(k) &lt; \eta_3(k)\)</span>. That is,
+RCPO uses a multi-timescale approach; on the fast timescale an
+alternative, discounted, objective is estimated using a TD-critic; on
+the intermediate timescale the policy is learned using policy gradient
+methods; and on the slow timescale the penalty coefficient
+<span class="math notranslate nohighlight">\(\lambda\)</span> is learned by ascending on the original constraint.</p>
+</section>
+<section id="convergence-guarantee">
+<h2>Convergence guarantee<a class="headerlink" href="#convergence-guarantee" title="Permalink to this heading"></a></h2>
+<div class="theorem docutils container">
+<p>Denote by
+<span class="math notranslate nohighlight">\(\Theta = \{ \theta : J^C_{\pi_\theta} \leq \alpha \}\)</span> the set
+of feasible solutions and the set of local-minimas of
+<span class="math notranslate nohighlight">\(J_{C_\gamma}^{\pi_\theta}\)</span> as <span class="math notranslate nohighlight">\(\Theta_\gamma\)</span>. Assuming
+that <span class="math notranslate nohighlight">\(\Theta_\gamma \subseteq \Theta\)</span> then the ‘Reward
+Constrained Policy Optimization’ (RCPO) algorithm converges almost
+surely to a fixed point
+<span class="math notranslate nohighlight">\(\left(\theta^*(\lambda^*, v^*), v^*(\lambda^*), \lambda^*\right)\)</span>
+which is a feasible solution (e.g. <span class="math notranslate nohighlight">\(\theta^* \in \Theta\)</span>).</p>
+</div>
+<div class="proof docutils container">
+<p><em>Proof.</em> As opposed to Theorem
+<a class="reference external" href="#thm:convergence">[thm:convergence]</a>, in this case we are
+considering a three-timescale stochastic approximation scheme (the
+previous Theorem considered two-timescales). The proof is similar in
+essence to that of .</p>
+<p>The full process is described as follows:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \lambda_{k+1} &amp;= \Gamma_\lambda [\lambda_k + \eta_1 (k) ( \mathbb{E}^{\pi_{\theta(\lambda_k)}}_{s \sim \mu} [C (s)] - \alpha )] \\
+    \theta_{k+1} &amp;= \Gamma_\theta [\theta_k + \eta_2 (k) \nabla_\theta \mathbb{E}^{\pi_\theta}_{s \sim \mu} \left[\log \pi(s, a; \theta) \hat V(\lambda, s_t; v_k) \right]] \\
+    v_{k+1} &amp;= v_k - \eta_3 (k) \left[\partial (\hat r + \gamma \hat V(\lambda, s'; v_k) - \hat V(\lambda, s; v_k))^2 / \partial v_k\right]
+\end{aligned}\end{split}\]</div>
+<p><strong>Step 1:</strong> The value <span class="math notranslate nohighlight">\(v_k\)</span> runs on the fastest timescale,
+hence it observes <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(\lambda\)</span> as static. As
+the TD operator is a contraction we conclude that
+<span class="math notranslate nohighlight">\(v_k \rightarrow v(\lambda, \theta)\)</span>.</p>
+<p><strong>Step 2:</strong> For the policy recursion <span class="math notranslate nohighlight">\(\theta_k\)</span>, due to the
+timescale differences, we can assume that the critic <span class="math notranslate nohighlight">\(v\)</span> has
+converged and that <span class="math notranslate nohighlight">\(\lambda\)</span> is static. Thus as seen in the
+proof of Theorem <a class="reference external" href="#thm:convergence">[thm:convergence]</a>,
+<span class="math notranslate nohighlight">\(\theta_k\)</span> converges to the fixed point
+<span class="math notranslate nohighlight">\(\theta(\lambda, v)\)</span>.</p>
+<p><strong>Step 3:</strong> As shown previously (and in
+),
+<span class="math notranslate nohighlight">\((\lambda_n, \theta_n, v_n) \rightarrow (\lambda(\theta^*), \theta^*, v(\theta^*))\)</span>
+a.s.</p>
+<p>Denoting by
+<span class="math notranslate nohighlight">\(\Theta = \{ \theta : J^C_{\pi_\theta} \leq \alpha \}\)</span> the set
+of feasible solutions and the set of local-minimas of
+<span class="math notranslate nohighlight">\(J_{C_\gamma}^{\pi_\theta}\)</span> as <span class="math notranslate nohighlight">\(\Theta_\gamma\)</span>. We recall
+the assumption stated in Theorem
+<a class="reference external" href="#theorem_discounted_constraint">[theorem_discounted_constraint]</a>:</p>
+<div class="assumption docutils container">
+<p><span class="math notranslate nohighlight">\(\Theta_\gamma \subseteq \Theta\)</span>.</p>
+</div>
+<p>Given that the assumption above holds, we may conclude that for
+<span class="math notranslate nohighlight">\(\lambda_\text{max} \rightarrow \infty\)</span>, the set of stationary
+points of the process are limited to a sub-set of feasible solutions
+of (<a class="reference external" href="#constrained_mdp_dual">[constrained_mdp_dual]</a>). As such the
+process converges a.s. to a feasible solution.</p>
+<p>We finish by providing intuition regarding the behavior in case the
+assumptions do not hold.</p>
+<ol class="arabic">
+<li><p><strong>Assumption</strong> <a class="reference external" href="#existance_of_policy">[existance_of_policy]</a>
+<strong>does not hold:</strong> As gradient descent algorithms descend until
+reaching a (local) stationary point. In such a scenario, the
+algorithm is only ensured to converge to stationary solution, yet
+said solution is not necessarily a feasible one.</p>
+<p>As such we can only treat the constraint as a regularizing term
+for the policy in which <span class="math notranslate nohighlight">\(\lambda_\text{max}\)</span> defines the
+maximal regularization allowed.</p>
+</li>
+<li><p><strong>Assumption</strong>
+<a class="reference external" href="#asm:sub_set_constraint">[asm:sub_set_constraint]</a> <strong>does not
+hold:</strong> In this case, it is not safe to assume that the gradient
+of (<a class="reference external" href="#per_state_constraint">[per_state_constraint]</a>) may be
+used as a guide for solving
+(<a class="reference external" href="#constrained_mdp">[constrained_mdp]</a>). A Monte-Carlo approach
+may be used to approximate the gradients, however this does not
+enjoy the benefits of reduced variance and smaller samples (due to
+the lack of a critic).</p></li>
+</ol>
+<blockquote>
+<div><p>◻</p>
+</div></blockquote>
+</div>
+<p>The assumption in Theorem
+<a class="reference external" href="#theorem_discounted_constraint">[theorem_discounted_constraint]</a>
+demands a specific correlation between the guiding penalty signal
+<span class="math notranslate nohighlight">\(C_\gamma\)</span> and the constraint <span class="math notranslate nohighlight">\(C\)</span>. Consider a robot with an
+average torque constraint. A policy which uses 0 torque at each
+time-step is a feasible solution and in turn is a local minimum of both
+<span class="math notranslate nohighlight">\(J_C\)</span> and <span class="math notranslate nohighlight">\(J_{C_\gamma}\)</span>. If such a policy is reachable from
+any <span class="math notranslate nohighlight">\(\theta\)</span> (via gradient descent), this is enough in order to
+provide a theoretical guarantee such that <span class="math notranslate nohighlight">\(J_{C_\gamma}\)</span> may be
+used as a guiding signal in order to converge to a fixed-point, which is
+a feasible solution.</p>
+<dl class="footnote brackets">
+<dt class="label" id="id3"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>When Assumption <a class="reference external" href="#existance_of_policy">[existance_of_policy]</a>
+holds, <span class="math notranslate nohighlight">\(\lambda_\text{max}\)</span> can be set to <span class="math notranslate nohighlight">\(\infty\)</span>.</p>
+</dd>
+</dl>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="lag.html" class="btn btn-neutral float-left" title="TRPO-Lagrangian and PPO-Lagrangian" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="focops_docs.html" class="btn btn-neutral float-right" title="First Order Constrained Optimization in Policy Space" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, OmniSafe Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

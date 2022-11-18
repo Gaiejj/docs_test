@@ -1,0 +1,312 @@
+`Trust Region Policy Optimization <https://arxiv.org/abs/1502.05477>`__
+=======================================================================
+
+Introduction of algorithm
+-------------------------
+
+Background
+~~~~~~~~~~
+
+Comparing with normal policy gradient method, which only use the most
+recent trajectory to learn policy, TRPO make the use of old knowledge
+with the importance sampling and KL-Divergence constrain methods. TRPO
+promise that the policy will be imporved in each iteration untill it
+converge to the optimal policy. TRPO is also a policy-based method which
+similar to `natural policy gradient
+methods <https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf>`__,
+but it has several improvments over NPG. NPG use KL-Divergence and
+Fisher information matrix to determine the step size and the direction
+of gradient descent. However, computing and storing the Fisher
+information matrix is painfully expensive with neural network policies
+with thousands of millions of parameters. TRPO replace this computing
+process with an simpler one and use backtracking line search to improve
+the step size of NPG.
+
+Key Equations
+~~~~~~~~~~~~~
+
+Let :math:`\pi` denote a stochastic policy
+:math:`\pi:S \times A \to[0,1]`, and let :math:`\eta(\pi)` denote its
+expected discounted reward:
+
+.. math:: \eta(\pi)=E_{s0,a0,...}[\sum_{t=0}^{\infty}\gamma^tr(s_t)]
+
+The expected return of another policy :math:`\hat\pi` in terms of the
+advantage over :math:`\pi` can be expressed as:
+
+.. math::
+
+   \eta(\hat\pi)=\eta(\pi)+E_{s0,a0,...\hat\pi}[\sum_{t=0}^{\infty}\gamma^tA_\pi(s_t,a_t)]\\
+   =\eta(\pi)+\sum_s\rho_{\hat\pi}(s)\sum_a\hat\pi(a|s)A_{\pi}(s,a)
+
+.. math:: where\quad \rho_{\hat\pi}=P(s_0=s)+\gamma P(s_1=s)+\gamma ^2P(s_2=s)...
+
+If the policy :math:`\hat\pi(s)` is defined as
+:math:`\hat\pi(s)=arg max_aA_{\pi}(s,a)`, at each iteration the
+advantage function :math:`A_{\pi}` will be positive and the policy will
+be better and better. Actually, it is difficult to directly compute the
+value of :math:`\eta(\hat\pi)`, because we need the new policy
+:math:`\hat\pi` to get the new trajectory :math:`\rho_{\hat\pi}`, which
+is painfully expensive to compute, so TRPO use a surrogate advantage
+function :math:`L_{\hat\pi}` to estimate :math:`\eta(\hat\pi)`:
+
+.. math:: L_{\hat\pi}=\eta(\pi)+\sum_s\rho_{\pi}(s)\sum_a\hat\pi(a|s)A_{\pi}(s,a)
+
+TRPO can use :math:`L_{\hat\pi}` to estimate :math:`\eta(\hat\pi)`
+because both function matches to each other to first order, so, for any
+parameter value :math:`\theta_0`:
+
+.. math:: L_{\pi_{\theta_0}}(\pi_{\theta_0})=\eta(\pi_{\theta_0})
+
+.. math:: \nabla_{\theta}L_{\pi_{\theta_0}}(\pi_{\theta})|_{\theta=\theta_0}=\nabla_{\theta}\eta(\pi_{\theta})|_{\theta=\theta_0}
+
+TRPO proved that :math:`\eta(\hat\pi)`\ has a lower bound:
+
+.. math:: \eta(\hat\pi)\ge L_{\hat\pi}-CD_{KL}^{max}(\pi,\hat\pi)
+
+.. math:: where\quad C=\frac{4\epsilon\gamma}{(1-\gamma)^2}\alpha^2
+
+.. math:: \epsilon=max_{s,a}|A_{\pi}(s,a)|
+
+:math:`D_{KL}^{max}(\pi,\hat\pi)` denotes the KL-Divergence between two
+policy. TRPO proved that by maximizing
+:math:`L_{\hat\pi}-CD_{KL}^{max}(\pi,\hat\pi)` at each iteration, the
+true objective :math:`\eta` is none decreasing, thus the performance of
+policy will be better. Let :math:`\theta` denotes :math:`\pi_{\theta}`,
+:math:`\theta_{old}` denotes :math:`\pi_{\theta_{old}}`, where
+:math:`\theta` is the parameters of policy :math:`\pi`, the optimal
+question will become:
+
+.. math:: max_\theta[L_{\theta}-CD_{KL}^{max}(\theta,\theta_{old})]
+
+However, in pratice the step size would be very small if we try to use
+the above equation to make gradient descent. TRPO proposed a robust way
+which use a constraint on the KL divergence between the new and old
+policy to solve above optimal question:
+
+.. math:: max_{\theta}L_{\hat\theta}
+
+.. math:: subject\, to \quad \hat D_{KL}^{\rho_{\theta _{old}}}(\theta_{old})\le \delta
+
+.. math:: where \quad D_{KL}^{\rho_{\theta _{old}}}(\theta_{old})=E_{s\sim\rho}[D_{KL}(\pi_{\theta_1}(*|s)||\pi_{\theta2}(*|s))]
+
+TRPO finally replace the max KL-Divergence with the average
+KL-Divergence, which allow the step size larger in learning process.
+
+Experiment details
+------------------
+
+Importance sampling
+~~~~~~~~~~~~~~~~~~~
+
+TRPO use Monte Carlo simulation to solve above constrain, so it use
+importance sampling to rewrite the original problem as:
+
+.. math:: max_{\theta}E_{s\sim \rho_{\theta_{old}}a\sim q}[\frac{\pi_{\theta}(a|s)}{q(a|s)}Q_{\theta_{old}}(s,a)]
+
+.. math:: subject \, to \, E_{s \sim \rho_{\theta_{old}}}[D_{KL}(\pi_{\theta_{old}}(*|s))|(\pi_{\theta})(*|s)]\le\delta
+
+General speaking, TRPO use the data sampled by old policy to learn
+policy many times, while keeping the constrain of KL-Divergence. TRPO
+will compute update direction and step size to guarantee that
+constraint.
+
+Conjugate gradient
+~~~~~~~~~~~~~~~~~~
+
+To solve the above constrained optimal problem, a search direction
+process is needed. The search direction is computed by approximately
+solving the equation: :math:`Ax=g`, where :math:`A` is the Fisher
+information matrix,i.e., the KL-DIvergence constraint will be
+approximately denoted as
+:math:`\frac{1}{2}(\theta -\theta_{old})^TA(\theta-\theta_{old})`.
+Unlike NPG, which form the whole Fisher information matrix in gradient
+desecnt, TRPO use conjugate gradient method to more efficiently compute
+matrix-vector products :math:`s \approx A^{-1}g` with the Fisher
+information matrix.
+
+Linear searching of learning rate
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Having computed the search direction :math:`s \approx A^{-1}g`, TRPO
+next compute the maximal step length :math:`\beta` such that
+:math:`\theta+\beta s` will satisfy the KL-Divergence constraint. To do
+that, TRPO let :math:`\delta=\frac{1}{2}(\beta s)^TA(\beta s)`. From
+that TRPO obtain :math:`\beta=\sqrt{2\delta/s^TAs}`, where
+:math:`\delta` is the desired KL divergence. Then starting with the
+initial value of :math:`\beta`, TRPO shrink :math:`\beta` exponentially
+untill the constriant is met, thus TRPO find the needed step size by
+linear searching.
+
+Code with OmniSafe
+------------------
+
+Quick start
+~~~~~~~~~~~
+
+We use train.py as the entrance file. You can train the agent with TRPO
+simply using ``train.py``, with arguments about TRPO and enviroments
+does the training. For example, to run TRPO in Safexp-PointGoal1-v0,
+with 4 cpu cores and seed 0, you can use the following command:
+``python train.py --env-id Safexp-PointGoal1-v0 --algo trpo --cores 4 --seed 0``
+Here are the documentation of TRPO in PyTorch version.
+
+Architecture of functions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  ``train()``
+
+   -  ``runner().compile()``
+   -  ``runner().train()``
+
+      -  ``trpo.learn()``
+
+         -  ``trpo.roll_out()``
+         -  ``trpo.update()``
+
+            -  ``trpo.buf.get()``
+            -  ``trpo.update_policy_net()``
+
+               -  ``Fvp()``
+               -  ``conjugate_gradients()``
+               -  ``search_step_size()``
+
+            -  ``trpo.update_cost_net()``
+            -  ``trpo.update_value_net()``
+
+         -  ``trpo.log()``
+
+   -  ``runner().eval()``
+
+Documentation of functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++-----------------------------+----------------------------------------+
+| Function                    | Description                            |
++=============================+========================================+
+| ``train()``                 | The entrance to train the trpo model   |
++-----------------------------+----------------------------------------+
+| ``runner().compile()``      | Compile the model, use mpi for         |
+|                             | parallel computation or run N          |
+|                             | individual processes.                  |
++-----------------------------+----------------------------------------+
+| ``runner().train()``        | Train the model for a given number of  |
+|                             | epochs.                                |
++-----------------------------+----------------------------------------+
+| ``trpo.learn()``            | Main function for algorithm update,    |
+|                             | divided into ``roll_out()``,           |
+|                             | ``update()`` and ``log()``             |
++-----------------------------+----------------------------------------+
+| ``trpo.roll_out()``         | Collect data and store to experience   |
+|                             | buffer.                                |
++-----------------------------+----------------------------------------+
+| ``trpo.update()``           | Update actor, critic, running          |
+|                             | statistics                             |
++-----------------------------+----------------------------------------+
+| ``trpo.buf.get()``          | Call this at the end of an epoch to    |
+|                             | get all of the data from the buffer    |
++-----------------------------+----------------------------------------+
+| `                           | Add ``Fvp()``,                         |
+| `trpo.update_policy_net()`` | ``conjugate_gradients()`` and          |
+|                             | ``search_step_size()``                 |
++-----------------------------+----------------------------------------+
+| ``Fvp()``                   | Build the Hessian-vector product based |
+|                             | on an approximation of the             |
+|                             | KL-Divergence.                         |
++-----------------------------+----------------------------------------+
+| ``conjugate_gradients()``   | Use conjugate gradient algorithm to    |
+|                             | make a fast calculating                |
++-----------------------------+----------------------------------------+
+| ``search_step_size()``      | TRPO performs line-search until        |
+|                             | constraint satisfaction.               |
++-----------------------------+----------------------------------------+
+| ``trpo.update_cost_net()``  | Update cost network using GAE cost     |
++-----------------------------+----------------------------------------+
+| ``trpo.update_value_net()`` | Update value network using GAE reward  |
++-----------------------------+----------------------------------------+
+| ``trpo.log()``              | Get the trainning log                  |
++-----------------------------+----------------------------------------+
+| ``runner().eval()``         | Eval the model                         |
++-----------------------------+----------------------------------------+
+
+Parameters
+~~~~~~~~~~
+
+-  **actor (string)**: The type of network in actor, discrete of
+   continuous.
+-  **ac_kwargs (dictionary)**: Information about actor and critic’s net
+   work configuration,it originates from ``algo.yaml`` file to describe
+   ``hidden layers`` and ``activation function``.
+
+   -  parameters for actor network
+
+      -  hidden_sizes:
+
+         -  64
+         -  64
+
+      -  activations: tanh
+
+   -  parameters for critic network
+
+      -  hidden_sizes:
+
+         -  64
+         -  64
+
+      -  activations: tanh
+
+-  **env_id (string)**: The name of environment we want to roll out.
+-  **epochs (int)**: The number of epochs we want to roll out.
+-  **logger_kwargs (dictionary)**: The information about logger
+   configuration which originates from ``runner module``.
+-  **adv_estimation_method (string)**: The type of advantage estimation
+   method.
+-  **algo (string)**: The name of algorithm corresponding to current
+   class, it does not actually affect any things which happen in the
+   following.
+-  **check_freq (int)**: The frequency for we to check if all models own
+   the same parameter values.(for mpi multi-process purpose).
+-  **entropy_coef (float)**: The discount coefficient for entropy
+   penalty, if parameters\ ``use_entropy=True``.
+-  **gamma (float)**: The gamma for GAE.
+-  **max_ep_len (int)**: The maximum timesteps of an episode.
+-  **max_grad_norm (float)**: If parameters\ ``use_max_grad_norm=True``,
+   use this parameter to normalize gradient.
+-  **num_mini_batches (int)**: The number of mini batches we want to
+   update actor and critic after one epoch.
+-  **optimizer (string)**: The type of optimizer.
+-  **pi_lr (float)**: The learning rate of actor network.
+-  **vf_lr (float)**: The learning rate of critic network.
+-  **steps_per_epoch (int)**:The number of time steps per epoch.
+-  **target_kl (float)**:Roughly what KL divergence we think is
+   appropriate between new and old policies after an update. This will
+   get used for early stopping. (Usually small, 0.01 or 0.05.)
+-  **train_pi_iterations (int)**: The number of iteration when we update
+   actor network per mini batch.
+-  **train_v_iterations (int)**: The number of iteration when we update
+   critic network per mini batch.
+-  **use_entropy (bool)**: Use entropy penalty or not.
+-  **use_kl_early_stopping (bool)**: Use KL early stopping or not.
+-  **use_reward_scaling (bool)**: Use reward scaling or not.
+-  **use_reward_penalty (bool)**: Use cost to penalize reward or not.
+-  **use_shared_weights (bool)**: Use shared weights between actor and
+   critic network or not.
+-  **use_standardized_advantages (bool)**: Use standardized advantages
+   or not.
+-  **use_standardized_obs (bool)**: Use standarized observation or not.
+-  **weight_initialization (string)**: The type of weight initialization
+   method.
+-  **save_freq (int)**: How often (in terms of gap between epochs) to
+   save the current policy and value function.
+-  **seed (int)**: The random seed of this run.
+
+Reference
+---------
+
+-  `Trust Region Policy
+   Optimization <https://arxiv.org/abs/1502.05477>`__, Schulman et
+   al. 2015
+-  `A Natural Policy
+   Gradient <https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf>`__,Sham
+   Kakade et al. 2002

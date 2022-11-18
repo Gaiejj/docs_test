@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Constrained Policy Optimization &mdash; OmniSafe 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="TRPO-Lagrangian and PPO-Lagrangian" href="lag.html" />
+    <link rel="prev" title="Trust Region Policy Optimization" href="trpo_docs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> OmniSafe
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Introduction.html">Introudction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../User%20Documentation/Installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">OmniSafe’s Algorithms documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="trpo_docs.html">Trust Region Policy Optimization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Constrained Policy Optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction-of-algorithm">Introduction of algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#background">Background</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#target">Target</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#key-equations">Key Equations</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#practical-implementation">Practical Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#approximately-solving-the-cpo-update">Approximately Solving the CPO Update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#feasibility">Feasibility</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tightening-constraints-via-cost-shaping">Tightening Constraints via Cost Shaping</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#code-with-omnisafe">Code with OmniSafe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#quick-start">Quick start</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#architecture-of-functions">Architecture of functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#documentation-of-functions">Documentation of functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameters">Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#appendix">Appendix</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cmdps">CMDPs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#proof-of-policy-performance-bound">Proof of Policy Performance Bound</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lag.html">TRPO-Lagrangian and PPO-Lagrangian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rcpo_docs.html">Reward Constrained Policy Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="focops_docs.html">First Order Constrained Optimization in Policy Space</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pcpo_docs.html">Projection-Based Constrained Policy Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OmniSafe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">OmniSafe’s Algorithms documentation</a> &raquo;</li>
+      <li>Constrained Policy Optimization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/Algorithms Docs/cpo_docs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="constrained-policy-optimization">
+<h1><a class="reference external" href="https://arxiv.org/abs/1705.10528">Constrained Policy Optimization</a><a class="headerlink" href="#constrained-policy-optimization" title="Permalink to this heading"></a></h1>
+<section id="introduction-of-algorithm">
+<h2>Introduction of algorithm<a class="headerlink" href="#introduction-of-algorithm" title="Permalink to this heading"></a></h2>
+<section id="background">
+<h3>Background<a class="headerlink" href="#background" title="Permalink to this heading"></a></h3>
+<p><strong>Constrained Policy Optimization</strong>(<strong>CPO</strong>) is the first
+general-purpose policy search algorithm for constrained reinforcement
+learning with guarantees for near-constraint satisfaction at each
+iteration. CPO allows us to train neural network policies for
+high-dimensional control while making guarantees about policy behavior
+all throughout training. In other word, CPO provide a general method to
+make sure RL trained in a safe direction. CPO aims to provide an
+approach for policy search in continuous CMDPs. It use the result from
+TRPO and NPG to derive a policy improvement step that guarantees both an
+increase in reward and satisfaction ofconstraints on other costs.</p>
+</section>
+<section id="target">
+<h3>Target<a class="headerlink" href="#target" title="Permalink to this heading"></a></h3>
+<p>In the previous chapters, you learned that TRPO solves the following
+optimization problems:</p>
+<div class="math notranslate nohighlight">
+\[\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{1}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t.\quad D(\pi,\pi_k)\le\delta\]</div>
+<p>where <span class="math notranslate nohighlight">\(\prod_{\theta}\subseteq\prod\)</span> denotes the set of
+parametrized policies with parameters <span class="math notranslate nohighlight">\(\theta\)</span>, and <span class="math notranslate nohighlight">\(D\)</span> is
+some distance measure. In local policy search for CMDPs, we additionally
+require policy iterates to be feasible for the CMDP, so instead of
+optimizing over <span class="math notranslate nohighlight">\(\prod_{\theta}\)</span>, CPO optimize over
+<span class="math notranslate nohighlight">\(\prod_{\theta}\cap\prod_{C}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,\eta(\pi)\tag{2}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}s.t. \quad\eta_{C_i}(\pi)\le d_i\quad i=1,...m \\ D(\pi,\pi_k)\le\delta\end{split}\]</div>
+<p>This update is difficult to implement in practice because it requires
+evaluation of the constraint functions to determine whether a proposed
+point <span class="math notranslate nohighlight">\(\pi\)</span> is feasible. CPO develop a principled approximation to
+<span class="math notranslate nohighlight">\((2)\)</span> with a particular choice of <span class="math notranslate nohighlight">\(D\)</span>, where the objective
+and constraints are replaced with surrogate functions. CPO propose that
+with those surrogates, the update’s worst case performance and
+worst-case constraint violation can be bounded with values that depend
+on a hyperparameter of the algorithm.</p>
+</section>
+<section id="key-equations">
+<h3>Key Equations<a class="headerlink" href="#key-equations" title="Permalink to this heading"></a></h3>
+<p>Here we will show you the main contents of CPO theory, please refer to
+the appendix for a detailed proof of these theories.This section is
+divided by three parts as below:</p>
+<ul class="simple">
+<li><p>Policy Performance Bounds</p></li>
+<li><p>Trust Region Methods</p></li>
+<li><p>Worst Performance Of CPO Update</p></li>
+</ul>
+<p>Before we get into the first part, we’ll give some of the meaning of the
+basic symbols in reinforcement learning so that you can better
+understand the formulas presented below:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 59%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Symbol</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(s\)</span></p></td>
+<td><p>state</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(a\)</span></p></td>
+<td><p>action</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R(s,a,s^{'})\)</span></p></td>
+<td><p>reward function</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\gamma\)</span></p></td>
+<td><p>discount factor</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(A^{\pi}(s,a)\)</span></p></td>
+<td><p>advantage functions</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(A_{C_i}^{\pi}(s,a)\)</span></p></td>
+<td><p>advantage functions for costs</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\pi(a\vert s)\)</span></p></td>
+<td><p>the probability of selecting action a
+in state s</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\theta\)</span></p></td>
+<td><p>the parameters for policy <span class="math notranslate nohighlight">\(\pi\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<section id="policy-performance-bounds">
+<h4>Policy Performance Bounds<a class="headerlink" href="#policy-performance-bounds" title="Permalink to this heading"></a></h4>
+<p>CPO presents the theoretical foundation for its approach, a new bound on
+the difference in returns between two arbitrary policies. The following
+theorem connects the difference in returns (or constraint returns)
+between two arbitrary policies to an average divergence between them.</p>
+<p><strong>Theorem 1</strong> For any function <span class="math notranslate nohighlight">\(f:S\rightarrow R\)</span> and any policys
+<span class="math notranslate nohighlight">\(\pi\)</span> and <span class="math notranslate nohighlight">\(\pi^{'}\)</span>, define
+<span class="math notranslate nohighlight">\(d_f(s,a,s^{'})=R(s,a,s^{'})+\gamma f(s^{'})-f(s)\)</span></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\epsilon_f^{\pi^{'}}=max_s{|E_{a\sim\pi\\\,s^{'}\sim P }}[d_f(s,a,s)]|\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[J_{\pi,f}(\pi^{'})={E_{\tau\sim\pi}}[(\frac{\pi^{'}(a|s)}{\pi(a|s)}-1)(d_f(s,a,s^{'}))]\]</div>
+<div class="math notranslate nohighlight">
+\[D^{\pm}_{\pi ,f}(\pi^{'})=\frac{J_{\pi,f}(\pi^{'})}{1-\gamma}\pm\frac{2\gamma\epsilon_f^{\pi^{'}}}{(1-\gamma)^2}E_{s\sim d^{\pi}}[D_{TV}(\pi^{'}||\pi)[s]]\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(D_{TV}(\pi^{'}||\pi)[s]=\frac12\sum_a|\pi^{'}(a|s)-\pi(a|s)|\)</span> is
+the total variational divergence between action distributions at s. The
+final conclusion is as follows:</p>
+<div class="math notranslate nohighlight">
+\[D^+_{\pi,f}(\pi^{'})\ge \eta(\pi^{'})-\eta(\pi)\ge D^-_{\pi,f}(\pi^{'})\tag{3}\]</div>
+<p>Furthermore, the bounds are tight (when <span class="math notranslate nohighlight">\(\pi=\pi^{'}\)</span>, all three
+expressions are identically zero) The proof of the theorem above can be
+seen in appendix. Trying to understand the proof process of the theorem
+will give you a deeper understanding of it, but if you think it’s too
+difficult, it doesn’t matter, just accept it and it won’t affect your
+understanding of what comes next. Note that the function <span class="math notranslate nohighlight">\(f\)</span> can
+be arbitrarily chosen, so picking <span class="math notranslate nohighlight">\(f=V^{\pi}\)</span>, we obtain a
+corollary below:</p>
+<p><strong>Corollary 1</strong> For any policies <span class="math notranslate nohighlight">\(\pi^{'}\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span>, with
+<span class="math notranslate nohighlight">\(\epsilon^{\pi^{'}}=max_s|E_{a\sim\pi^{'}}[A^{\pi}(s,a)]|\)</span>, the
+following bound holds:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\pi^{'})-\eta(\pi)\ge\frac1{1-\gamma}E_{s\sim d^{\pi}\,a\sim\pi^{'}}[A^{\pi}(s,a)-\frac{2\gamma\epsilon_f^{\pi^{'}}}{(1-\gamma)^2}D_{TV}(\pi^{'}||\pi)[s]]\tag{4}\]</div>
+<p>Then we generalize the conclusion to cost’s evaluation function:</p>
+<p><strong>Corollary 2</strong> For any policies <span class="math notranslate nohighlight">\(\pi^{'}\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span>, with
+<span class="math notranslate nohighlight">\(\epsilon_{C_i}^{\pi^{'}}=max_s|E_{a\sim\pi^{'}}[A_{C_i}^{\pi}(s,a)]|\)</span>,
+the following bound holds:</p>
+<div class="math notranslate nohighlight">
+\[\eta_{C_i}(\pi^{'})-\eta_{C_i}(\pi)\le\frac1{1-\gamma}E_{s\sim d^{\pi}\,a\sim\pi^{'}}[A_{C_i}^{\pi}(s,a)+\frac{2\gamma\epsilon_{C_i}^{\pi^{'}}}{(1-\gamma)^2}D_{TV}(\pi^{'}||\pi)[s]]\tag{5}\]</div>
+<p>trust region methods prefer constrain the KL-divergence between
+policies, so CPO use Pinsker’s inequality to connect the <span class="math notranslate nohighlight">\(D_{TV}\)</span>
+with <span class="math notranslate nohighlight">\(D_{KL}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[D_{TV}(p||q)\le\sqrt{D_{KL}(p||q)/2}\]</div>
+<p>Combining this with Jensen’s inequality, we obtain our final corollary:</p>
+<p><strong>Corollary 3</strong> In bound <span class="math notranslate nohighlight">\((3),(4),(5)\)</span>, make the substitution:</p>
+<div class="math notranslate nohighlight">
+\[E_{s\sim d^{\pi}}[D_{TV}(\pi||\pi^{'})[s]]\rightarrow\sqrt{\frac12E_{s\sim d^{\pi}}[D_{KL}(\pi^{'}||\pi)[s]]}\tag{6}\]</div>
+<p>In this section we introduce the core theory of CPO and its three
+important corollaries, and then we will discuss how CPO uses these
+theories to get its trust region methods</p>
+</section>
+<section id="trust-region-methods">
+<h4>Trust Region Methods<a class="headerlink" href="#trust-region-methods" title="Permalink to this heading"></a></h4>
+<p>Trust region algorithms for reinforcement learning have policy updates
+of the form:</p>
+<div class="math notranslate nohighlight">
+\[\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}E_{s\sim d^{\pi_k}\,a\sim\pi}[A^{\pi_k}(s,a)]\tag{7}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t.\quad \hat D_{KL}(\pi||\pi_k)\le\delta\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(\hat D_{KL}(\pi||\pi_k)=E_{s\sim\pi_k}[D_{KL}(\pi||\pi_k)[s]]\)</span>,
+and <span class="math notranslate nohighlight">\(\delta\gt0\)</span> is the step size, The set
+<span class="math notranslate nohighlight">\(\{\pi_{\theta}\in\prod_{\theta}:\hat D_{KL}(\pi||\pi^{'})\le\delta\}\)</span>
+is called trust region. The primary motivation for this update is that
+it is an approximation to optimizing the lower bound on policy
+performance given in <span class="math notranslate nohighlight">\((4)\)</span>, which would guarantee monotonic
+performance improvements. Inspired by trust region methods, CPO propose
+the final optimization problem, which uses a trust region instead of
+penalties on policy divergence to enable larger step sizes:</p>
+<div class="math notranslate nohighlight">
+\[\pi_{k+1}=arg\,\underset{\pi\in\prod_{\theta}}{max}\,E_{s\sim d^{\pi_k}\,a\sim\pi}[A^{\pi_k}(s,a)]\tag{8}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t. \quad\eta_{C_i}(\pi_k)+\frac1{1-\gamma}E_{s\sim d^{\pi_k}\,a\sim\pi}[A_{C_i}^{\pi_k}(s,a)]\le \delta_i \quad\forall i\]</div>
+<div class="math notranslate nohighlight">
+\[\hat D_{KL}(\pi||\pi_k)\le\delta\]</div>
+</section>
+<section id="worst-performance-of-cpo-update">
+<h4>Worst Performance Of CPO Update<a class="headerlink" href="#worst-performance-of-cpo-update" title="Permalink to this heading"></a></h4>
+<p>Here we will introduce the two proposition proposed by the CPO, one
+describes the worst case performance degradation guarantee that depends
+on <span class="math notranslate nohighlight">\(\delta\)</span> and the other discuss the worst case constraint
+violation in CPO update.</p>
+<p><strong>Proposition 1</strong>(Trust Region Update Performance)</p>
+<p>Suppose <span class="math notranslate nohighlight">\(\pi_k,\pi_{k+1}\)</span> are related by(7). and that
+<span class="math notranslate nohighlight">\(\pi_k\in\prod_{\theta}\)</span>, A lower bound on the policy performance
+difference between <span class="math notranslate nohighlight">\(\pi_k\)</span> and <span class="math notranslate nohighlight">\(\pi_{k+1}\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\pi^{'})-\eta(\pi)\ge\frac{-\sqrt{2\delta}\gamma\epsilon^{\pi_{k+1}}}{(1-\gamma)^2}\tag{9}\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(\epsilon^{\pi_{k+1}}=max_s|E_{a\sim\pi_{k+1}}[A_{\pi_k}(s,a)]|\)</span>.</p>
+<p><strong>Proposition 2</strong>(CPO Update Worst-Case Constraint Violation)</p>
+<p>Suppose <span class="math notranslate nohighlight">\(\pi_k,\pi_{k+1}\)</span> are related by(8). and that
+<span class="math notranslate nohighlight">\(\pi_k\in\prod_{\theta}\)</span>, An upper bound on the <span class="math notranslate nohighlight">\(C_i\)</span>-return
+of <span class="math notranslate nohighlight">\(\pi_{k+1}\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\eta_{C_i}(\pi_{k+1})\le\delta_i+\frac{\sqrt{2\delta}\gamma\epsilon^{\pi_{k+1}}_{C_i}}{(1-\gamma)^2}\tag{10}\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(\epsilon^{\pi_{k+_1}}_{C_i}=max_s|E_{a\sim\pi_{k+1}}[A_{C_i}^{\pi_k}(s,a)]|\)</span></p>
+</section>
+<section id="summary">
+<h4>Summary<a class="headerlink" href="#summary" title="Permalink to this heading"></a></h4>
+<p>In this section we introduce the most important inequalities in CPO.
+Based on those inequalities, CPO presents optimization problems that
+ultimately need to be solved, and propose two proposition about the
+worst case in CPO update. Next section we wil go on with the question
+that how to practically solve this problem. It is normal that you may be
+confused when you first read these theoretical derivation processes, and
+we have given a detailed proof of the above formulas in the appendix,
+which we believe you can understand by reading them a few times.</p>
+</section>
+</section>
+</section>
+<section id="practical-implementation">
+<h2>Practical Implementation<a class="headerlink" href="#practical-implementation" title="Permalink to this heading"></a></h2>
+<p>In this section, we show how CPO implement an approximation to the
+update <span class="math notranslate nohighlight">\((8)\)</span> that can be efficiently computed,even when optimizing
+policies with thousands of parameters. To address the issue of
+approximation and samplingerrors that arise in practice, as well as the
+potential violations described by Proposition 2, CPO propose to
+tightenthe constraints by constraining upper bounds of the auxilliary
+costs, instead of the auxilliary costs themselves This section is also
+divided by three parts:</p>
+<ul class="simple">
+<li><p>Approximately Solving the CPO Update</p></li>
+<li><p>Feasibility</p></li>
+<li><p>Tightening Constraints via Cost Shaping</p></li>
+</ul>
+<section id="approximately-solving-the-cpo-update">
+<h3>Approximately Solving the CPO Update<a class="headerlink" href="#approximately-solving-the-cpo-update" title="Permalink to this heading"></a></h3>
+<p>For policies with high-dimensional parameter spaces like neural
+networks, <span class="math notranslate nohighlight">\((8)\)</span> can be impractical to solve directly because of
+the computational cost. However, for small step sizes <span class="math notranslate nohighlight">\(\delta\)</span>,
+the objective and cost constraints are well-approximated by linearizing
+around <span class="math notranslate nohighlight">\(\pi_k\)</span>, and the KL-Divergence constraint is
+well-approximated by second order expansion . Denoting the gradient of
+the objective as <span class="math notranslate nohighlight">\(g\)</span>, the gradient of constraint <span class="math notranslate nohighlight">\(i\)</span> as
+<span class="math notranslate nohighlight">\(b_i\)</span>, the Hessian of the KL-divergence as <span class="math notranslate nohighlight">\(H\)</span>, and defining
+<span class="math notranslate nohighlight">\(c_i=J_{C_i}(\pi_k)-d_i\)</span>, the approximation to <span class="math notranslate nohighlight">\((8)\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\theta_{k+1}=arg\,\underset{\theta}{max}\,g^T(\theta-\theta_k)\tag{11}\]</div>
+<div class="math notranslate nohighlight">
+\[s.t.\quad c_i+b_i^T(\theta-\theta_k)\le0\, i=1,...m\]</div>
+<div class="math notranslate nohighlight">
+\[\frac12(\theta-\theta_k)^TH(\theta-\theta_k)\le\delta\]</div>
+<p>With <span class="math notranslate nohighlight">\(B=[b_1,...,b_m]\)</span> and <span class="math notranslate nohighlight">\(c=[c_1,...,c_m]^T\)</span>, a dual to
+<span class="math notranslate nohighlight">\((11)\)</span> can be express as:</p>
+<div class="math notranslate nohighlight">
+\[\underset{\lambda\ge0\,\upsilon\ge0}{max}\frac{-1}{2\lambda}(g^TH^{-1}g-2r^T\upsilon+\upsilon^TS\upsilon)+\upsilon^Tc-\frac{\lambda\delta}2\tag{12}\]</div>
+<p>where <span class="math notranslate nohighlight">\(r=g^TH^{-1}B\)</span>,<span class="math notranslate nohighlight">\(S=B^TH^{-1}B\)</span>. If
+<span class="math notranslate nohighlight">\(\lambda ^*, \upsilon^*\)</span> are a solution to the dual, the solution
+to the primal is</p>
+<div class="math notranslate nohighlight">
+\[\theta^*=\theta_k+\frac1{\lambda^*}H^{-1}(g-B\upsilon^*)\tag{13}\]</div>
+<p>In a word, CPO solves the dual for <span class="math notranslate nohighlight">\(λ∗\)</span>, <span class="math notranslate nohighlight">\(ν∗\)</span> and uses it to
+propose the policy update <span class="math notranslate nohighlight">\((13)\)</span>, thus solve <span class="math notranslate nohighlight">\((8)\)</span> in a
+partical way. In experiment CPO also use two tricks to promise the
+performance for update Because of approximation error, the proposed
+update may not satisfy the constraints in <span class="math notranslate nohighlight">\((8)\)</span>; a <strong>backtracking
+line search</strong> is used to ensure surrogate constraint satisfaction.
+For high-dimensional policies, it is impractically expensive to invert
+the FIM. This poses a challenge for computing <span class="math notranslate nohighlight">\(H^{-1}g\)</span> and
+<span class="math notranslate nohighlight">\(H^{-1}b\)</span>, which appear in the dual. Like TRPO, CPO approximately
+compute them using the <strong>conjugate gradient</strong> method.</p>
+</section>
+<section id="feasibility">
+<h3>Feasibility<a class="headerlink" href="#feasibility" title="Permalink to this heading"></a></h3>
+<p>Due to approximation errors, CPO may take a bad step and produce an
+infeasible iterate <span class="math notranslate nohighlight">\(\pi_k\)</span>. CPO recover the update from infeasible
+case by proposing an update to purely decrease the constraint value:</p>
+<div class="math notranslate nohighlight">
+\[\theta^*=\theta_k-\sqrt{\frac{2\delta}{b^TH^{-1}b}}H^{-1}b\tag{14}\]</div>
+<p>As before, this is followed by a line search. This approach is
+principled in that it uses the limiting search direction as the
+intersection of the trust region and the constraint region shrinks to
+zero.</p>
+</section>
+<section id="tightening-constraints-via-cost-shaping">
+<h3>Tightening Constraints via Cost Shaping<a class="headerlink" href="#tightening-constraints-via-cost-shaping" title="Permalink to this heading"></a></h3>
+<p>To build a factor of safety into the algorithm to minimize the chance of
+constraint violations, CPO choose to constrain upper bounds on the
+original constraints, <span class="math notranslate nohighlight">\(C^+_i\)</span>, instead of the origianl constrains
+themselves. CPO do this by cost shaping:</p>
+<div class="math notranslate nohighlight">
+\[C^+_i(s,a,s^{'})=C_{i}(s,a,s^{'})+\triangle_i(s,a,s^{'})\tag{15}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta_i:S\times A\times S\rightarrow R_+\)</span> correlates in
+some useful way with <span class="math notranslate nohighlight">\(C_i\)</span>. Because CPO has only one constraint, it
+partition states into <strong>safe states</strong> and <strong>unsafe states</strong>, and the
+agent suffers a safety cost of 1 for being in an unsafe state. CPO
+choose <span class="math notranslate nohighlight">\(\triangle\)</span> to be the probability of entering an unsafe
+state within a fixed time horizon, according to a learned model that is
+updated at each iteration. This choice confers the additional benefit of
+smoothing out sparse constraints.</p>
+</section>
+</section>
+<section id="code-with-omnisafe">
+<h2>Code with OmniSafe<a class="headerlink" href="#code-with-omnisafe" title="Permalink to this heading"></a></h2>
+<section id="quick-start">
+<h3>Quick start<a class="headerlink" href="#quick-start" title="Permalink to this heading"></a></h3>
+<p>We use <code class="docutils literal notranslate"><span class="pre">train.py</span></code> as the entrance file. You can train the agent with
+CPO simply using <code class="docutils literal notranslate"><span class="pre">train.py</span></code>, with arguments about CPO and enviroments
+does the training. For example, to run CPO in Safexp-PointGoal1-v0, with
+4 cpu cores and seed 0, you can use the following command:
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">train.py</span> <span class="pre">--env-id</span> <span class="pre">Safexp-PointGoal1-v0</span> <span class="pre">--algo</span> <span class="pre">cpo</span> <span class="pre">--cores</span> <span class="pre">4</span> <span class="pre">--seed</span> <span class="pre">0</span></code>
+Here are the documentation of CPO in PyTorch version.</p>
+</section>
+<section id="architecture-of-functions">
+<h3>Architecture of functions<a class="headerlink" href="#architecture-of-functions" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">train()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">runner().compile()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runner().train()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.learn()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.roll_out()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.buf.get()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update_policy_net()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Fvp()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conjugate_gradients()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">search_step_size()</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update_cost_net()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.update_value_net()</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpo.log()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runner().eval()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="documentation-of-functions">
+<h3>Documentation of functions<a class="headerlink" href="#documentation-of-functions" title="Permalink to this heading"></a></h3>
+<section id="newly-added-function">
+<h4>Newly added function<a class="headerlink" href="#newly-added-function" title="Permalink to this heading"></a></h4>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 53%" />
+<col style="width: 47%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compute_loss_cost_performance()</span></code></p></td>
+<td><p>Get the policy cost performance
+gradient</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="basic-functions">
+<h4>Basic functions<a class="headerlink" href="#basic-functions" title="Permalink to this heading"></a></h4>
+<p>A <strong>bold font</strong> indicates a functional change to the function</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 58%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">train()</span></code></p></td>
+<td><p>The entrance to train the trpo model</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">runner().compile()</span></code></p></td>
+<td><p>Compile the model, use mpi for
+parallel computation or run N
+individual processes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">runner().train()</span></code></p></td>
+<td><p>Train the model for a given number of
+epochs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.learn()</span></code></p></td>
+<td><p>Main function for algorithm update,
+divided into <code class="docutils literal notranslate"><span class="pre">roll_out()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">update()</span></code> and <code class="docutils literal notranslate"><span class="pre">log()</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.roll_out()</span></code></p></td>
+<td><p>Collect data and store to experience
+buffer.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.update()</span></code></p></td>
+<td><p>Update actor, critic, running
+statistics</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.buf.get()</span></code></p></td>
+<td><p>Call this at the end of an epoch to
+get all of the data from the buffer</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.update_policy_net()</span></code></p></td>
+<td><p>Add <code class="docutils literal notranslate"><span class="pre">Fvp()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">conjugate_gradients()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">search_step_size()</span></code>, <strong>and it
+divides optimization into 5 kinds to
+compute</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Fvp()</span></code></p></td>
+<td><p>Build the Hessian-vector product based
+on an approximation of the
+KL-Divergence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">conjugate_gradients()</span></code></p></td>
+<td><p>Use conjugate gradient algorithm to
+make a fast calculating</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">search_step_size()</span></code></p></td>
+<td><p>CPO performs line-search to <strong>ensure
+constraint satisfaction for rewards
+and costs.</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.update_cost_net()</span></code></p></td>
+<td><p>Update cost network using GAE cost</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.update_value_net()</span></code></p></td>
+<td><p>Update value network using GAE reward</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpo.log()</span></code></p></td>
+<td><p>Get the trainning log</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">runner().eval()</span></code></p></td>
+<td><p>Eval the model</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading"></a></h3>
+<section id="specific-parameters">
+<h4>Specific Parameters<a class="headerlink" href="#specific-parameters" title="Permalink to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>cost_limit(float)</strong>: Upper bound of max-cost, set as restriction</p></li>
+<li><p><strong>use_cost_value_function(bool)</strong>: Whether to use two critics value
+and cost net and update them</p></li>
+<li><p><strong>loss_pi_cost_before(float)</strong>: <span class="math notranslate nohighlight">\(\pi\)</span> and cost loss last iter</p></li>
+</ul>
+</section>
+<section id="basic-parameters">
+<h4>Basic parameters<a class="headerlink" href="#basic-parameters" title="Permalink to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>actor (string)</strong>: The type of network in actor, discrete of
+continuous.</p></li>
+<li><p><strong>ac_kwargs (dictionary)</strong>: Information about actor and critic’s net
+work configuration,it originates from <code class="docutils literal notranslate"><span class="pre">algo.yaml</span></code> file to describe
+<code class="docutils literal notranslate"><span class="pre">hidden</span> <span class="pre">layers</span></code> and <code class="docutils literal notranslate"><span class="pre">activation</span> <span class="pre">function</span></code>.</p>
+<ul>
+<li><p>parameters for actor network</p>
+<ul>
+<li><p>hidden_sizes:</p>
+<ul>
+<li><p>64</p></li>
+<li><p>64</p></li>
+</ul>
+</li>
+<li><p>activations: tanh</p></li>
+</ul>
+</li>
+<li><p>parameters for critic network</p>
+<ul>
+<li><p>hidden_sizes:</p>
+<ul>
+<li><p>64</p></li>
+<li><p>64</p></li>
+</ul>
+</li>
+<li><p>activations: tanh</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>env_id (string)</strong>: The name of environment we want to roll out.</p></li>
+<li><p><strong>epochs (int)</strong>: The number of epochs we want to roll out.</p></li>
+<li><p><strong>logger_kwargs (dictionary)</strong>: The information about logger
+configuration which originates from <code class="docutils literal notranslate"><span class="pre">runner</span> <span class="pre">module</span></code>.</p></li>
+<li><p><strong>adv_estimation_method (string)</strong>: The type of advantage estimation
+method.</p></li>
+<li><p><strong>algo (string)</strong>: The name of algorithm corresponding to current
+class, it does not actually affect any things which happen in the
+following.</p></li>
+<li><p><strong>check_freq (int)</strong>: The frequency for we to check if all models own
+the same parameter values.(for mpi multi-process purpose).</p></li>
+<li><p><strong>entropy_coef (float)</strong>: The discount coefficient for entropy
+penalty, if parameters<code class="docutils literal notranslate"><span class="pre">use_entropy=True</span></code>.</p></li>
+<li><p><strong>gamma (float)</strong>: The gamma for GAE.</p></li>
+<li><p><strong>max_ep_len (int)</strong>: The maximum timesteps of an episode.</p></li>
+<li><p><strong>max_grad_norm (float)</strong>: If parameters<code class="docutils literal notranslate"><span class="pre">use_max_grad_norm=True</span></code>,
+use this parameter to normalize gradient.</p></li>
+<li><p><strong>num_mini_batches (int)</strong>: The number of mini batches we want to
+update actor and critic after one epoch.</p></li>
+<li><p><strong>optimizer (string)</strong>: The type of optimizer.</p></li>
+<li><p><strong>pi_lr (float)</strong>: The learning rate of actor network.</p></li>
+<li><p><strong>vf_lr (float)</strong>: The learning rate of critic network.</p></li>
+<li><p><strong>steps_per_epoch (int)</strong>:The number of time steps per epoch.</p></li>
+<li><p><strong>target_kl (float)</strong>:Roughly what KL divergence we think is
+appropriate between new and old policies after an update. This will
+get used for early stopping. (Usually small, 0.01 or 0.05.)</p></li>
+<li><p><strong>train_pi_iterations (int)</strong>: The number of iteration when we update
+actor network per mini batch.</p></li>
+<li><p><strong>train_v_iterations (int)</strong>: The number of iteration when we update
+critic network per mini batch.</p></li>
+<li><p><strong>use_entropy (bool)</strong>: Use entropy penalty or not.</p></li>
+<li><p><strong>use_kl_early_stopping (bool)</strong>: Use KL early stopping or not.</p></li>
+<li><p><strong>use_reward_scaling (bool)</strong>: Use reward scaling or not.</p></li>
+<li><p><strong>use_reward_penalty (bool)</strong>: Use cost to penalize reward or not.</p></li>
+<li><p><strong>use_shared_weights (bool)</strong>: Use shared weights between actor and
+critic network or not.</p></li>
+<li><p><strong>use_standardized_advantages (bool)</strong>: Use standardized advantages
+or not.</p></li>
+<li><p><strong>use_standardized_obs (bool)</strong>: Use standarized observation or not.</p></li>
+<li><p><strong>weight_initialization (string)</strong>: The type of weight initialization
+method.</p></li>
+<li><p><strong>save_freq (int)</strong>: How often (in terms of gap between epochs) to
+save the current policy and value function.</p></li>
+<li><p><strong>seed (int)</strong>: The random seed of this run.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/1705.10528">Constrained Policy
+Optimization</a></p></li>
+<li><p><a class="reference external" href="https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf">A Natural Policy
+Gradient</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/1502.05477">Trust Region Policy
+Optimization</a></p></li>
+<li><p><a class="reference external" href="https://www.semanticscholar.org/paper/Constrained-Markov-Decision-Processes-Altman/3cc2608fd77b9b65f5bd378e8797b2ab1b8acde7">Constrained Markov Decision
+Processes</a></p></li>
+</ul>
+</section>
+<section id="appendix">
+<h2>Appendix<a class="headerlink" href="#appendix" title="Permalink to this heading"></a></h2>
+<section id="cmdps">
+<h3>CMDPs<a class="headerlink" href="#cmdps" title="Permalink to this heading"></a></h3>
+<p>A <strong>constrained Markov decision process(CMDP)</strong> is an MDP augmented with
+constraints that restrict the set of allowable policies for that MDP.
+Specifically, we agument the MDP with a set <span class="math notranslate nohighlight">\(C\)</span> of auxiliary cost
+functions, <span class="math notranslate nohighlight">\(C_1,...,C_m\)</span>(with each one a function
+<span class="math notranslate nohighlight">\(C_i:S\times A\times S\rightarrow R\)</span> maping transition tuples to
+costs, like the usual reward), and limits <span class="math notranslate nohighlight">\(\delta_1,...,\delta_m\)</span>.
+Let <span class="math notranslate nohighlight">\(\eta_{C_i}(\pi)\)</span> denote expected discounted return of policy
+<span class="math notranslate nohighlight">\(\pi\)</span> with respect to cost function
+<span class="math notranslate nohighlight">\(C_i:\eta_{C_i}(\pi)=E_{\tau\sim\pi}[\sum_{t=0}^{\infty}\gamma^tC_i(s_t,a_t,s_{t+1})]\)</span>.
+The set of feasible stationary policies for a CMDP is then</p>
+<div class="math notranslate nohighlight">
+\[\prod_C=\{\pi\in\prod :\forall i,\eta_{C_i}(\pi)\le\delta_i\}\]</div>
+<p>and the reinforcement learning problem in a CMDP is</p>
+<div class="math notranslate nohighlight">
+\[\pi^*=arg\,max_{\pi\in\prod_C}\eta(\pi)\]</div>
+<p>The choice of optimizing only over stationary policies is justified: it
+has been shown that the set of all optimal policies for a CMDP includes
+stationary policies, under mild technical conditions. For a thorough
+review of CMDPs and CMDP theory, we refer the reader to the <a class="reference external" href="https://www.semanticscholar.org/paper/Constrained-Markov-Decision-Processes-Altman/3cc2608fd77b9b65f5bd378e8797b2ab1b8acde7">original
+paper of
+CMDPs</a></p>
+</section>
+<section id="proof-of-policy-performance-bound">
+<h3>Proof of Policy Performance Bound<a class="headerlink" href="#proof-of-policy-performance-bound" title="Permalink to this heading"></a></h3>
+<p>Here we will provide a provement for policy performance bound we
+mentioned before. This part would be divided by a preparatory knowledge
+part, three lemma part and finally the conclusion part. As long as you
+understand the prerequisites, you can understand the content that
+follows.</p>
+<section id="preparatory-knowledge">
+<h4>Preparatory knowledge<a class="headerlink" href="#preparatory-knowledge" title="Permalink to this heading"></a></h4>
+<p>Our analysis will begin with the discounted future future state
+distribution, <span class="math notranslate nohighlight">\(\rho_{\pi}\)</span>, which is defined as:</p>
+<div class="math notranslate nohighlight">
+\[\rho_{\pi}(s)=(1-\gamma)\sum_{t=0}^{\infty}\gamma^tP(s_t=s|\pi)\tag{1}\]</div>
+<p>Let <span class="math notranslate nohighlight">\(p_{\pi}^t\in R^{|S|}\)</span> denote the vector with components
+<span class="math notranslate nohighlight">\(p_{\pi}^{t}(s)=P(s_t=s|\pi)\)</span>, and let
+<span class="math notranslate nohighlight">\(P_{\pi}\in R^{|S|\times|S|}\)</span> denote the transition matrix with
+components <span class="math notranslate nohighlight">\(P_{\pi}(s^{'}|s)=\int daP(s^{'}|s,a)\pi(a|s)\)</span>, which
+shown as below:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\left[
+\begin{matrix}
+ p_{\pi}^t(s_1)\\
+ p_{\pi}^t(s_2)\\
+ \vdots \\
+ p_{\pi}^t(s_n)
+\end{matrix}
+\right]=
+\left[
+\begin{matrix}
+ P_{\pi}(s_1|s_1)      &amp; P_{\pi}(s_1|s_2)      &amp; \cdots &amp; P_{\pi}(s_1|s_n)     \\
+ P_{\pi}(s_2|s_1)      &amp; P_{\pi}(s_2|s_2)    &amp; \cdots &amp; P_{\pi}(s_2|s_n)     \\
+ \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+ P_{\pi}(s_n|s_1)      &amp; P_{\pi}(s_n|s_2)     &amp; \cdots &amp; P_{\pi}(s_n|s_n)     \\
+\end{matrix}
+\right]
+\left[
+\begin{matrix}
+ p_{\pi}^{t-1}(s_1)\\
+ p_{\pi}^{t-1}(s_2)\\
+ \vdots \\
+ p_{\pi}^{t-1}(s_n)
+\end{matrix}
+\right]\end{split}\]</div>
+<p>then
+<span class="math notranslate nohighlight">\(p_{\pi}^t=P_{\pi}p_{\pi}^{t-1}=P_{\pi}^2p_{\pi}^{t-2}=...=P_{\pi}^t\mu\)</span>,
+where <span class="math notranslate nohighlight">\(\mu\)</span> represents the state distribution of the system at the
+moment, that is, the initial state distribution, then <span class="math notranslate nohighlight">\(\rho_{\pi}\)</span>
+can then be rewritten as :</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\rho_{\pi}=\left[\begin{matrix}\rho_{\pi}(s_1)\\\rho_{\pi}(s_2)\\\vdots\\\rho_{\pi}(s_n)\end{matrix}\right]=(1-\gamma)\left[\begin{matrix}\gamma^0p^0_{\pi}(s_1)+\gamma^1p^1_{\pi}(s_1)+\gamma^2p^2_{\pi}(s_1)+...\\\gamma^0p^0_{\pi}(s_2)+\gamma^1p^1_{\pi}(s_2)+\gamma^2p^2_{\pi}(s_2)+...\\\vdots \\\gamma^0p^0_{\pi}(s_3)+\gamma^1p^1_{\pi}(s_3)+\gamma^2p^2_{\pi}(s_3)+...\end{matrix}\right]\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\rho_{\pi}=(1-\gamma)\sum_{t=0}^{\infty}\gamma^tp^t_{\pi}=(1-\gamma)(1-\gamma P_{\pi})^{-1}\mu\tag{2}\]</div>
+<p>The above proof may be somewhat complicated, but as long as you
+understand them, the rest of the content will be easier to catch up
+with.</p>
+</section>
+<section id="lemma-1">
+<h4>Lemma 1<a class="headerlink" href="#lemma-1" title="Permalink to this heading"></a></h4>
+<p>For any function <span class="math notranslate nohighlight">\(f:S\rightarrow R\)</span> and any policy <span class="math notranslate nohighlight">\(\pi\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[(1-\gamma){E}_{{s\sim\mu}}[f(s)]+{E}_{\tau\sim\pi}[\gamma f(s^{'})]-{E}_{s\sim\rho_{\pi}}[f(s)]=0\tag{3}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\tau\sim\pi\)</span> denotes <span class="math notranslate nohighlight">\(s\sim\rho_{\pi}\)</span>,
+<span class="math notranslate nohighlight">\(a\sim\pi\)</span> and <span class="math notranslate nohighlight">\(s^{'}\sim P\)</span>. <strong>Proof.</strong> Multiply both sides
+of <span class="math notranslate nohighlight">\((2)\)</span> by <span class="math notranslate nohighlight">\((I-\gamma P_{\pi})\)</span>, we get :</p>
+<div class="math notranslate nohighlight">
+\[(I-\gamma P_{\pi})\rho_{\pi}=(1-\gamma)\mu\tag{4}\]</div>
+<p>Then take the inner product with the vector <span class="math notranslate nohighlight">\(f \in R^{|S|}\)</span> and
+notice that the vector <span class="math notranslate nohighlight">\(f\)</span> can be arbitrarily picked.</p>
+<div class="math notranslate nohighlight">
+\[&lt;f,(I-\gamma P_{\pi})\rho_{\pi}&gt;=&lt;f,(1-\gamma)\mu&gt;\tag{5}\]</div>
+<p>Both sides of the above equation can be rewritten separately by:</p>
+<div class="math notranslate nohighlight">
+\[&lt;f,(I-\gamma P_{\pi})\rho_{\pi}&gt;=[\sum_sf(s)\rho_{\pi}(s)]-[\sum_{s^{'}}f(s^{'})\gamma\sum_s\sum_a\pi(a|s)P(s^{'}|s,a)\rho_{\pi}(s)]\]</div>
+<div class="math notranslate nohighlight">
+\[={E}_{s\sim\rho_{\pi}}[f(s)]-{E}_{\tau\sim\pi}[\gamma f(s^{'})]\tag{6}\]</div>
+<div class="math notranslate nohighlight">
+\[&lt;f,(1-\gamma)\mu&gt;=\sum_sf(s)(1-\gamma)\mu(s)=(1-\gamma){E}_{s\sim\mu}[f(s)] \tag{7}\]</div>
+<p>Combining <span class="math notranslate nohighlight">\((5),(6),(7)\)</span>, we obtain:</p>
+<div class="math notranslate nohighlight">
+\[(1-\gamma){E}_{{s\sim\mu}}[f(s)]+{E}_{\tau\sim\pi}[\gamma f(s^{'})]- {E}_{s\sim\rho_{\pi}}[f(s)]\tag{8}\]</div>
+<p>Note that the objective function can be represented as:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\pi)=\frac{1}{1-\gamma}{E_{\tau\sim\pi}}[R(s,a,s^{'})]\tag{9}\]</div>
+<p>Combining this with <span class="math notranslate nohighlight">\((8)\)</span> then we obtain:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\pi)={E_{s\sim\mu}[f(s)]}+\frac{1}{1-\gamma}{E_{\tau\sim\pi}}[R(s,a,s^{'})+\gamma f(s^{'})-f(s)]\tag{10}\]</div>
+</section>
+<section id="lemma2">
+<h4>Lemma2<a class="headerlink" href="#lemma2" title="Permalink to this heading"></a></h4>
+<p>For any function <span class="math notranslate nohighlight">\(f:S\rightarrow R\)</span> and any policies <span class="math notranslate nohighlight">\(\pi\)</span>
+and <span class="math notranslate nohighlight">\(\pi^{'}\)</span>,define:</p>
+<div class="math notranslate nohighlight">
+\[J_{\pi,f}(\pi^{'})={E_{\tau\sim\pi}}[(\frac{\pi^{'}(a|s)}{\pi(a|s)}-1)(R(s,a,s^{'})+\gamma f(s^{'})-f(s))]\tag{11}\]</div>
+<p>and
+<span class="math notranslate nohighlight">\(\epsilon_f^{\pi^{'}}=max_s{E_{a\sim\pi\\\,s^{'}\sim P }}|[R(s,a,s^{'})+\gamma f(s^{'})-f(s)]|\)</span>,
+Then the following bounds hold:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\pi^{'})-\eta(\pi)\ge\frac{1}{1-\gamma}(J_{\pi,f}(\pi^{'})-2\epsilon_f^{\pi^{'}}D_{TV}(\rho_{\pi}||\rho_{\pi^{'}}))\tag{12}\]</div>
+<div class="math notranslate nohighlight">
+\[\eta(\pi^{'})-\eta(\pi)\le\frac{1}{1-\gamma}(J_{\pi,f}(\pi^{'})+2\epsilon_f^{\pi^{'}}D_{TV}(\rho_{\pi}||\rho_{\pi^{'}}))\tag{13}\]</div>
+<p>where <span class="math notranslate nohighlight">\(D_{TV}\)</span> is the total variational divergence. Furthermore,
+the bounds are tight, when <span class="math notranslate nohighlight">\(\pi^{'}=\pi,\)</span> the LHS and RHS are
+identically zero.</p>
+<p><strong>Proof.</strong></p>
+<p>Let <span class="math notranslate nohighlight">\(d_f(s,a,s^{'})=R(s,a,s^{'})+\gamma f(s^{'})-f(s)\)</span>, then
+by(12), we easily obtain that:</p>
+<div class="math notranslate nohighlight">
+\[\eta(\pi^{'})-\eta(\pi)=\frac{1}{1-\gamma}\{{E_{\tau\sim\pi^{'}}}[d_f(s,a,s^{'})]-{E_{\tau\sim\pi}}[d_f(s,a,s^{'}]\}\tag{14}\]</div>
+<p>For the first term of the equation, let
+<span class="math notranslate nohighlight">\(\hat d^{\pi^{'}}_f\in R^{|S|}\)</span> denote the vector of components
+<span class="math notranslate nohighlight">\(\hat d^{\pi^{'}}_f(s)={E_{a\sim\pi^{'}\\s^{'}\sim P }}[d_f(s,a,s^{'}|s)]\)</span>,
+then</p>
+<div class="math notranslate nohighlight">
+\[{E_{\tau\sim\pi^{'}}}[d_f(s,a,s^{'})]=&lt;\hat d^{\pi^{'}}_f,\rho_{\pi^{'}}&gt;=&lt;\hat d^{\pi^{'}}_f,\rho_{\pi}&gt;+&lt;\hat d^{\pi^{'}}_f,\rho_{\pi^{'}}-\rho_{\pi}&gt;\tag{15}\]</div>
+<p>By using Holder’s inequality; for any <span class="math notranslate nohighlight">\(p,q \in [1,\infty]\)</span>, such
+that <span class="math notranslate nohighlight">\(\frac{1}{p}+\frac{1}{q}=1\)</span>. we have</p>
+<div class="math notranslate nohighlight">
+\[&lt;\hat d^{\pi^{'}}_f,\rho_{\pi}&gt;+||\rho_{\pi^{'}}-\rho_{\pi}||_p||\hat d^{\pi^{'}}_f||_q\ge\,{E_{\tau\sim\pi^{'} }}[d_f(s,a,s^{'})]\tag{16}\]</div>
+<div class="math notranslate nohighlight">
+\[&lt;\hat d^{\pi^{'}}_f,\rho_{\pi}&gt;-||\rho_{\pi^{'}}-\rho_{\pi}||_p||\hat d^{\pi^{'}}_f||_q\le\,{E_{\tau\sim\pi^{'} }}[d_f(s,a,s^{'})]\tag{17}\]</div>
+<p>Please note that
+<span class="math notranslate nohighlight">\(||\rho_{\pi^{'}}-\rho_{\pi}||_1=2D_{TV}(\rho_{\pi^{'}}|\rho_{\pi})\)</span>
+and <span class="math notranslate nohighlight">\(||d_f(s,a,s^{'})||_{\infty}=\epsilon_f^{\pi^{'}}\)</span> ,then
+<span class="math notranslate nohighlight">\((16)\)</span> leads to <span class="math notranslate nohighlight">\((13)\)</span>, and the <span class="math notranslate nohighlight">\((17)\)</span> leads to
+<span class="math notranslate nohighlight">\((12)\)</span>.</p>
+</section>
+<section id="lemma3">
+<h4>Lemma3<a class="headerlink" href="#lemma3" title="Permalink to this heading"></a></h4>
+<p>The divergence between discounted future state visitation distributions,
+<span class="math notranslate nohighlight">\(||\rho_{\pi^{'}}-\rho_{\pi}||\)</span>, is bounded by an average
+divergence of the policies <span class="math notranslate nohighlight">\(\pi\)</span> and <span class="math notranslate nohighlight">\(\pi^{'}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[||\rho_{\pi^{'}}-\rho_{\pi}||_1\le\frac{2\gamma}{1-\gamma}E_{s\sim\rho_{\pi}}[D_{TV}(\pi^{'}||\pi)[s]]\tag{18}\]</div>
+<p><strong>Proof.</strong> First, We introduce an identity for the vector difference of
+the discounted future state visitation distributions on two different
+policies, <span class="math notranslate nohighlight">\(\pi\)</span> and $:raw-latex:<cite>pi`^{’}. $According to
+:math:`(4)</cite>, define the matrices <span class="math notranslate nohighlight">\(G=(I-\gamma P_{\pi})^{-1}\)</span>,
+<span class="math notranslate nohighlight">\(\hat G=(I-\gamma P_{\pi^{'}})^{-1}\)</span>, and
+<span class="math notranslate nohighlight">\(\triangle=P_{\pi^{'}}-P_{\pi}\)</span>, Then:</p>
+<div class="math notranslate nohighlight">
+\[G^{-1}-\hat G^{-1}=(I-\gamma P_{\pi})-(I-\gamma P_{\pi^{'}})=\gamma \triangle\]</div>
+<p>left-multiplying by <span class="math notranslate nohighlight">\(G\)</span> and right-multiplying by <span class="math notranslate nohighlight">\(\hat G\)</span>,
+we obtain:</p>
+<div class="math notranslate nohighlight">
+\[\hat G-G=\gamma \hat G\triangle G\]</div>
+<p>Thus we obtain:</p>
+<div class="math notranslate nohighlight">
+\[\rho_{\pi^{'}}-\rho_{\pi}=(1-\gamma)(\hat G-G)\mu=\gamma\hat G\triangle\rho_{\pi}\tag{19}\]</div>
+<p>Then using <span class="math notranslate nohighlight">\((19)\)</span>, we obtain:</p>
+<div class="math notranslate nohighlight">
+\[||\rho_{\pi^{'}}-\rho_{\pi}||_1=\gamma||\hat G\triangle\rho_{\pi}||_1\le\gamma||\hat G||_1||\triangle\rho_{\pi}||_1\]</div>
+<p><span class="math notranslate nohighlight">\(||\hat G||_1\)</span> is bounded by:</p>
+<div class="math notranslate nohighlight">
+\[||\hat G||_1=||(I-\gamma P_{\pi^{'}})^{-1}||_1\le\sum_{t=0}^{\infty}\gamma ^t||P_{\pi^{'}}||_1^t=(1-\gamma)^{-1}\]</div>
+<p>Then we can conclude the lemma with the bounded
+<span class="math notranslate nohighlight">\(||\triangle \rho_{\pi}||_1\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[||\triangle \rho_{\pi}||_1=\sum_{s^{'}}|\sum _s\triangle(s^{'}|s)\rho_{\pi}(s)|\le\sum_{s,s^{'}}|\triangle (s^{'}|s)|\rho_{\pi}(s)\]</div>
+<div class="math notranslate nohighlight">
+\[=\sum_{s,s^{'}}|\sum_aP(s^{'}|s,a)(\pi^{'}(a|s)-\pi(a|s))|\rho_{\pi}(s)\le\sum_{s,a,s^{'}}P(s^{'}|s,a)|\pi^{'}(a|s)-\pi(a|s)|\rho_{\pi}(s)\]</div>
+<div class="math notranslate nohighlight">
+\[=\sum_{s,a}|\pi^{'}(a|s)-\pi(a|s)|\rho_{\pi}(s)=2E_{s\sim\rho_{pi}}[D_{TV}(\pi^{'}||\pi)[s]]\]</div>
+</section>
+<section id="conclusion">
+<h4>Conclusion<a class="headerlink" href="#conclusion" title="Permalink to this heading"></a></h4>
+<p>Based on above three lemma, we can finally prove our policy performance
+bound theroem: For any function <span class="math notranslate nohighlight">\(f:S\rightarrow R\)</span> and any policys
+<span class="math notranslate nohighlight">\(\pi\)</span> and <span class="math notranslate nohighlight">\(\pi^{'}\)</span>, define
+<span class="math notranslate nohighlight">\(d_f(s,a,s^{'})=R(s,a,s^{'})+\gamma f(s^{'})-f(s)\)</span></p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\epsilon_f^{\pi^{'}}=max_s{|E_{a\sim\pi\\\,s^{'}\sim P }}[d_f(s,a,s)]|\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[J_{\pi,f}(\pi^{'})={E_{\tau\sim\pi}}[(\frac{\pi^{'}(a|s)}{\pi(a|s)}-1)(d_f(s,a,s^{'}))]\]</div>
+<div class="math notranslate nohighlight">
+\[D^{\pm}_{\pi ,f}(\pi^{'})=\frac{J_{\pi,f}(\pi^{'})}{1-\gamma}\pm\frac{2\gamma\epsilon_f^{\pi^{'}}}{(1-\gamma)^2}E_{s\sim d^{\pi}}[D_{TV}(\pi^{'}||\pi)[s]]\]</div>
+<p>where
+<span class="math notranslate nohighlight">\(D_{TV}(\pi^{'}||\pi)[s]=\frac12\sum_a|\pi^{'}(a|s)-\pi(a|s)|\)</span> is
+the total variational divergence between action distributions at s. The
+final conclusion is as follows:</p>
+<div class="math notranslate nohighlight">
+\[D^+_{\pi,f}(\pi^{'})\ge J(\pi^{'})-J(\pi)\ge D^-_{\pi,f}(\pi^{'})\]</div>
+<p>Furthermore, the bounds are tight (when <span class="math notranslate nohighlight">\(\pi=\pi^{'}\)</span>, all three
+expressions are identically zero)</p>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="trpo_docs.html" class="btn btn-neutral float-left" title="Trust Region Policy Optimization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lag.html" class="btn btn-neutral float-right" title="TRPO-Lagrangian and PPO-Lagrangian" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, OmniSafe Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
